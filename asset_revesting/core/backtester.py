@@ -195,7 +195,9 @@ def run_backtest(start_date, end_date, initial_capital=100000, db_path=None, ver
                     entry_price = _get_close(pending_entry["asset"], date, db_path)
                 if entry_price and entry_price > 0:
                     stage_for_params = pending_entry.get("stage", STAGE_2)
-                    params = calc_trade_params(entry_price, pending_entry["direction"], stage_for_params)
+                    # Look up ATR for the underlying instrument on entry date
+                    atr_val = _get_atr(pending_entry.get("underlying", pending_entry["asset"]), date, db_path)
+                    params = calc_trade_params(entry_price, pending_entry["direction"], stage_for_params, atr=atr_val)
 
                     shares = cash / entry_price
                     position = {
@@ -549,3 +551,17 @@ def _calc_holding_days(entry_date, exit_date):
     d1 = datetime.strptime(entry_date, "%Y-%m-%d")
     d2 = datetime.strptime(exit_date, "%Y-%m-%d")
     return (d2 - d1).days
+
+
+def _get_atr(symbol, date_str, db_path=None):
+    """
+    Look up the stored ATR-14 value for a symbol on or before a given date.
+    Returns None if not available (backtester falls back to fixed-pct stop).
+    """
+    with get_connection(db_path) as conn:
+        row = conn.execute("""
+            SELECT atr_14 FROM indicators
+            WHERE symbol = ? AND date <= ?
+            ORDER BY date DESC LIMIT 1
+        """, (symbol, date_str)).fetchone()
+    return row["atr_14"] if row and row["atr_14"] else None

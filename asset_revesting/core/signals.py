@@ -18,6 +18,7 @@ from asset_revesting.config import (
     PARTIAL_EXIT_PCT_STAGE2, PARTIAL_EXIT_PCT_STAGE3, PARTIAL_EXIT_PCT_INVERSE,
     SPEED_CHECK_DAYS, SPEED_CHECK_EXTRA_PCT, SPEED_CHECK_MAX_PCT,
     DEFENSIVE_ROTATION_THRESHOLD,
+    USE_ATR_STOPS, ATR_MULTIPLIER, ATR_MAX_STOP_PCT, ATR_MIN_STOP_PCT,
 )
 from asset_revesting.core.stage_analysis import (
     STAGE_1, STAGE_2, STAGE_3, STAGE_4, TRANSITIONAL,
@@ -319,20 +320,37 @@ def asset_rotation(as_of_date=None, db_path=None):
 # TRADE PARAMETERS
 # =============================================================================
 
-def calc_trade_params(entry_price, direction, stage):
-    """Calculate stop, target, trail for a new trade."""
+def calc_trade_params(entry_price, direction, stage, atr=None):
+    """
+    Calculate stop, target, trail for a new trade.
+
+    If USE_ATR_STOPS is True and a valid ATR value is supplied, the initial
+    stop is set at entry_price - (ATR_MULTIPLIER × ATR), clamped between
+    ATR_MIN_STOP_PCT and ATR_MAX_STOP_PCT of entry price.
+    Falls back to fixed-percentage stops when ATR is unavailable.
+    """
+    def _atr_stop(fixed_pct, inverse=False):
+        """Return stop price using ATR if available, else fixed pct."""
+        if USE_ATR_STOPS and atr and atr > 0:
+            raw_distance = ATR_MULTIPLIER * atr
+            max_distance = entry_price * (ATR_MAX_STOP_PCT if not inverse else MAX_STOP_PCT_INVERSE * 1.5)
+            min_distance = entry_price * ATR_MIN_STOP_PCT
+            distance = max(min_distance, min(raw_distance, max_distance))
+            return entry_price - distance
+        return entry_price * (1 - fixed_pct)
+
     if direction == LONG_INVERSE:
-        return {"initial_stop": entry_price * (1 - MAX_STOP_PCT_INVERSE),
+        return {"initial_stop": _atr_stop(MAX_STOP_PCT_INVERSE, inverse=True),
                 "first_target": entry_price * (1 + FIRST_TARGET_PCT_INVERSE),
                 "trailing_pct": TRAILING_STOP_PCT_INVERSE,
                 "partial_exit_pct": PARTIAL_EXIT_PCT_INVERSE, "trade_type": "INVERSE"}
     elif stage == STAGE_3:
-        return {"initial_stop": entry_price * (1 - MAX_STOP_PCT),
+        return {"initial_stop": _atr_stop(MAX_STOP_PCT),
                 "first_target": entry_price * (1 + FIRST_TARGET_PCT_STAGE3),
                 "trailing_pct": TRAILING_STOP_PCT,
                 "partial_exit_pct": PARTIAL_EXIT_PCT_STAGE3, "trade_type": "STAGE3"}
     else:
-        return {"initial_stop": entry_price * (1 - MAX_STOP_PCT),
+        return {"initial_stop": _atr_stop(MAX_STOP_PCT),
                 "first_target": entry_price * (1 + FIRST_TARGET_PCT),
                 "trailing_pct": TRAILING_STOP_PCT,
                 "partial_exit_pct": PARTIAL_EXIT_PCT_STAGE2, "trade_type": "STANDARD"}
