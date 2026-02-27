@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Revesting — Signal Engine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e14;--bgc:#111922;--bgh:#172030;--bgs:#0d1219;--bdr:#1e2a3a;--bdb:#2a3a4e;--tx:#c5d0dc;--txd:#6b7d93;--txb:#e8edf3;--grn:#00d68f;--red:#ff5c72;--amb:#ffb84d;--blu:#4da6ff;--cyn:#4de8e0;--gbg:rgba(0,214,143,0.08);--rbg:rgba(255,92,114,0.08);--abg:rgba(255,184,77,0.08);--bbg:rgba(77,166,255,0.08);--mono:'JetBrains Mono',monospace;--sans:'IBM Plex Sans',-apple-system,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--sans);background:var(--bg);color:var(--tx);min-height:100vh;-webkit-font-smoothing:antialiased}.ctr{max-width:1200px;margin:0 auto;padding:20px}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:16px 0;margin-bottom:24px;border-bottom:1px solid var(--bdr)}.hdr h1{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--txb)}.hdr h1 span{color:var(--cyn)}.hdr-r{display:flex;align-items:center;gap:12px}.hdr-m{font-family:var(--mono);font-size:12px;color:var(--txd)}
+.hs{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:4px;font-size:11px;font-family:var(--mono);font-weight:500}.hsl{background:var(--gbg);color:var(--grn);border:1px solid rgba(0,214,143,0.2)}.hsc{background:var(--bbg);color:var(--blu);border:1px solid rgba(77,166,255,0.2)}.dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sec{margin-bottom:20px}.cd{background:var(--bgc);border:1px solid var(--bdr);border-radius:8px;padding:20px}.cd:hover{border-color:var(--bdb)}.cl{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:var(--txd);margin-bottom:6px}.gr{display:grid;gap:16px}.g2{grid-template-columns:1fr 1fr}
+.btn{font-family:var(--mono);font-size:11px;font-weight:500;padding:6px 14px;border-radius:4px;border:1px solid var(--bdr);background:var(--bgc);color:var(--tx);cursor:pointer;transition:all .15s}.btn:hover{border-color:var(--bdb);background:var(--bgh)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-g{background:rgba(0,214,143,.1);border-color:rgba(0,214,143,.3);color:var(--grn)}.btn-g:hover{background:rgba(0,214,143,.2)}
+.btn-r{background:rgba(255,92,114,.1);border-color:rgba(255,92,114,.3);color:var(--red)}.btn-r:hover{background:rgba(255,92,114,.2)}
+.btn-b{background:rgba(77,166,255,.1);border-color:rgba(77,166,255,.3);color:var(--blu)}.btn-b:hover{background:rgba(77,166,255,.2)}
+.btn-sm{font-size:10px;padding:4px 10px}
+input[type=number],input[type=text],input[type=date],select{font-family:var(--mono);font-size:12px;padding:6px 10px;border-radius:4px;border:1px solid var(--bdr);background:var(--bgs);color:var(--txb);width:100%}input:focus,select:focus{outline:none;border-color:var(--cyn)}
+.form-row{display:flex;gap:12px;margin-bottom:10px;align-items:flex-end}.form-grp{flex:1}.form-lbl{font-family:var(--mono);font-size:10px;color:var(--txd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block}
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:6px;font-family:var(--mono);font-size:12px;z-index:1000;animation:slidein .3s}@keyframes slidein{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}.toast-ok{background:rgba(0,214,143,.15);border:1px solid rgba(0,214,143,.3);color:var(--grn)}.toast-err{background:rgba(255,92,114,.15);border:1px solid rgba(255,92,114,.3);color:var(--red)}
+.ab{border-radius:8px;padding:24px;margin-bottom:24px;position:relative;overflow:hidden}.ab::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}.aby{background:linear-gradient(135deg,rgba(0,214,143,.08),rgba(0,214,143,.02));border:1px solid rgba(0,214,143,.2)}.aby::before{background:var(--grn)}.abh{background:linear-gradient(135deg,rgba(77,166,255,.08),rgba(77,166,255,.02));border:1px solid rgba(77,166,255,.2)}.abh::before{background:var(--blu)}.abc{background:linear-gradient(135deg,rgba(255,184,77,.08),rgba(255,184,77,.02));border:1px solid rgba(255,184,77,.2)}.abc::before{background:var(--amb)}
+.abl{font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}.abhe{font-size:22px;font-weight:600;color:var(--txb);line-height:1.3;margin-bottom:8px}.abx{font-size:14px;color:var(--tx);line-height:1.6;margin-bottom:16px}.abd{display:flex;gap:24px;flex-wrap:wrap}.abdl{font-family:var(--mono);font-size:10px;color:var(--txd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}.abdv{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--txb)}
+.pls{display:flex;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)}.pl{flex:1;padding:10px 12px;border-radius:6px}.ply{background:rgba(0,214,143,.06);border:1px solid rgba(0,214,143,.15)}.pln{background:rgba(107,125,147,.06);border:1px solid rgba(107,125,147,.15)}.plnm{font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}.ply .plnm{color:var(--grn)}.pln .plnm{color:var(--txd)}.pld{font-size:11px;color:var(--txd);line-height:1.4}
+.pb{display:flex;align-items:center;gap:12px;margin:12px 0}.pt{flex:1;height:6px;background:var(--bdr);border-radius:3px}.pf{height:100%;border-radius:3px}.pbl{font-family:var(--mono);font-size:11px;color:var(--txd);white-space:nowrap}.pvs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px}.pv{padding:10px;border-radius:6px;background:var(--bgs)}.pvl{font-family:var(--mono);font-size:10px;color:var(--txd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}.pvv{font-family:var(--mono);font-size:14px;font-weight:600}.pve{font-size:11px;color:var(--txd);margin-top:2px}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bdr)}.sr:last-child{border-bottom:none}.ssm{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--txb);width:40px}.snm{font-size:12px;color:var(--txd);margin-left:10px}.sb{font-family:var(--mono);font-size:11px;font-weight:500;padding:3px 10px;border-radius:4px}.s2{background:var(--gbg);color:var(--grn);border:1px solid rgba(0,214,143,.15)}.s4{background:var(--rbg);color:var(--red);border:1px solid rgba(255,92,114,.15)}.s1{background:var(--bbg);color:var(--blu);border:1px solid rgba(77,166,255,.15)}.s3{background:var(--abg);color:var(--amb);border:1px solid rgba(255,184,77,.15)}.st{background:rgba(107,125,147,.08);color:var(--txd);border:1px solid rgba(107,125,147,.15)}
+.hi{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--bdr);color:var(--txd);font-size:10px;font-family:var(--mono);cursor:help;margin-left:6px;position:relative}.ht{display:none;position:absolute;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2535;border:1px solid var(--bdb);border-radius:6px;padding:10px 12px;font-size:11px;font-family:var(--sans);color:var(--tx);line-height:1.5;width:280px;z-index:100;white-space:normal;font-weight:400;box-shadow:0 8px 24px rgba(0,0,0,.4)}.hi:hover .ht{display:block}
+.wn{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--abg);border:1px solid rgba(255,184,77,.2);border-radius:6px;margin-bottom:8px}.wnt{font-size:13px;color:var(--amb);line-height:1.4}.wne{font-size:11px;color:var(--txd);margin-top:4px;line-height:1.4}
+.tt{width:100%;border-collapse:collapse;font-size:12px}.tt th{text-align:left;padding:8px;border-bottom:1px solid var(--bdb);color:var(--txd);font-weight:500;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.5px}.tt td{padding:8px;border-bottom:1px solid var(--bdr)}.tt tr:hover td{background:var(--bgh)}
+.ig{display:grid;grid-template-columns:50px repeat(5,1fr);gap:4px;padding:6px 0;border-bottom:1px solid var(--bdr);font-family:var(--mono);font-size:11px}.igh{color:var(--txd);font-size:10px;font-weight:500;text-transform:uppercase}
+.checklist{list-style:none;padding:0}.checklist li{padding:8px 0;border-bottom:1px solid var(--bdr);font-size:13px;display:flex;align-items:flex-start;gap:8px;line-height:1.4}.checklist li:last-child{border-bottom:none}.chk-num{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--cyn);min-width:20px}
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:center;justify-content:center}.modal{background:var(--bgc);border:1px solid var(--bdb);border-radius:8px;padding:24px;width:480px;max-width:90vw}
+.ld{display:flex;align-items:center;justify-content:center;min-height:400px;font-family:var(--mono);color:var(--txd)}.ls{width:20px;height:20px;border:2px solid var(--bdr);border-top-color:var(--cyn);border-radius:50%;animation:spin .8s linear infinite;margin-right:12px}@keyframes spin{to{transform:rotate(360deg)}}.eb{padding:24px;background:var(--rbg);border:1px solid rgba(255,92,114,.2);border-radius:8px;color:var(--red);font-family:var(--mono);font-size:13px;text-align:center;margin-top:60px}
+@media(max-width:900px){.g2{grid-template-columns:1fr}.pls{flex-direction:column}.pvs{grid-template-columns:1fr}.abd{flex-direction:column;gap:12px}.form-row{flex-direction:column}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useCallback}=React;
+const API=window.location.origin;
+const STG={STAGE_1:{n:'1',l:'Accumulation',c:'s1'},STAGE_2:{n:'2',l:'Advancing',c:'s2'},STAGE_3:{n:'3',l:'Distribution',c:'s3'},STAGE_4:{n:'4',l:'Declining',c:'s4'},TRANSITIONAL:{n:'?',l:'Transitional',c:'st'}};
+const NM={SPY:'S&P 500',QQQ:'Nasdaq 100',TLT:'Treasury Bonds',UUP:'US Dollar Bull',UDN:'US Dollar Bear',BIL:'Cash (T-Bills)',SH:'S&P Inverse',PSQ:'Nasdaq Inverse'};
+const TR={1:'Equities — highest growth',2:'Bonds — moderate, safer',3:'Dollar — low volatility',4:'Cash — capital preservation'};
+
+const post=async(url,body)=>{const r=await fetch(`${API}${url}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw new Error(j.detail||'Request failed');return j;};
+
+function App(){
+  const[data,setData]=useState(null);const[err,setErr]=useState(null);const[ld,setLd]=useState(true);
+  const[toast,setToast]=useState(null);const[refreshing,setRefreshing]=useState(false);
+  const[showEntry,setShowEntry]=useState(false);const[showExit,setShowExit]=useState(false);const[showCapital,setShowCapital]=useState(false);
+  const[showEmail,setShowEmail]=useState(false);
+
+  const load=useCallback(async()=>{try{const r=await fetch(`${API}/api/dashboard`);if(!r.ok)throw new Error(`HTTP ${r.status}`);setData(await r.json());setErr(null);}catch(e){setErr(e.message);}finally{setLd(false);};},[]);
+  useEffect(()=>{load();const t=setInterval(load,60000);return()=>clearInterval(t);},[load]);
+
+  const showToast=(msg,ok=true)=>{setToast({msg,ok});setTimeout(()=>setToast(null),4000);};
+
+  const doRefresh=async()=>{setRefreshing(true);try{const r=await post('/api/refresh',{});showToast(`Data updated to ${r.data_date}`);load();}catch(e){showToast(e.message,false);}finally{setRefreshing(false);}};
+
+  const doEnter=async(formData)=>{try{const r=await post('/api/position/enter',formData);showToast(`Entered ${formData.symbol} @ $${formData.entry_price}`);setShowEntry(false);load();}catch(e){showToast(e.message,false);}};
+
+  const doExit=async(formData)=>{try{const r=await post('/api/position/exit',formData);showToast(r.message);setShowExit(false);load();}catch(e){showToast(e.message,false);}};
+
+  const doCapital=async(cap)=>{try{await post('/api/capital',{capital:cap});showToast(`Capital set to $${cap.toLocaleString()}`);setShowCapital(false);load();}catch(e){showToast(e.message,false);}};
+
+  if(ld)return<div className="ld"><div className="ls"/>Connecting...</div>;
+  if(err&&!data)return<div className="ctr"><div className="eb">Cannot connect: {err}</div></div>;
+
+  const hasPos=data.position!==null;
+
+  return(<div className="ctr">
+    {toast&&<div className={`toast ${toast.ok?'toast-ok':'toast-err'}`}>{toast.msg}</div>}
+
+    <Hdr data={data} onRefresh={doRefresh} refreshing={refreshing}/>
+    <ABanner s={data.signal} p={data.position} pf={data.portfolio} w={data.warnings}
+      onEnter={()=>setShowEntry(true)} onExit={()=>setShowExit(true)}/>
+
+    {hasPos&&<PosCard p={data.position} onExit={()=>setShowExit(true)}/>}
+
+    {!hasPos&&data.signal.direction!=='HOLD'&&data.signal.strength!=='NO_ENTRY'&&
+      <ActionChecklist signal={data.signal}/>}
+
+    <div className="gr g2 sec">
+      <StgCard stages={data.stages}/>
+      <MktCard vix={data.vix} w={data.warnings} vol={data.volume}/>
+    </div>
+    <div className="gr g2 sec">
+      <TrdCard trades={data.trades}/>
+      <IndCard ind={data.indicators}/>
+    </div>
+
+    <NarrativeCard data={data}/>
+
+    <div className="cd sec" style={{textAlign:'center'}}>
+      <button className="btn btn-b btn-sm" onClick={()=>setShowCapital(true)} style={{marginRight:8}}>Set Portfolio Capital</button>
+      <button className="btn btn-sm" onClick={()=>setShowEmail(true)} style={{marginRight:8}}>✉ Email Settings</button>
+      <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--txd)'}}>Current: ${data.portfolio.cash?.toLocaleString()}</span>
+    </div>
+
+    {showEntry&&<EntryModal signal={data.signal} onSubmit={doEnter} onClose={()=>setShowEntry(false)}/>}
+    {showExit&&<ExitModal position={data.position} onSubmit={doExit} onClose={()=>setShowExit(false)}/>}
+    {showCapital&&<CapitalModal current={data.portfolio.cash} onSubmit={doCapital} onClose={()=>setShowCapital(false)}/>}
+    {showEmail&&<EmailModal onClose={()=>setShowEmail(false)} showToast={showToast}/>}
+  </div>);
+}
+
+function Hdr({data,onRefresh,refreshing}){
+  const p=data.position;const dd=data.data_date;
+  // Data is stale only if more than 1 day old (accounts for timezone differences and weekends)
+  const ddMs=dd?new Date(dd+'T00:00:00'):null;const nowMs=new Date();const diffDays=ddMs?((nowMs-ddMs)/86400000):99;
+  const stale=diffDays>2;
+  return(<div className="hdr"><h1>ASSET <span>REVESTING</span></h1>
+    <div className="hdr-r">
+      <button className="btn btn-b btn-sm" onClick={onRefresh} disabled={refreshing}>{refreshing?'Updating...':'↻ Refresh Data'}</button>
+      <span className="hdr-m" style={stale?{color:'var(--amb)'}:{}}>Data: {dd||'?'}{stale?' ⚠ stale':''}</span>
+      <span className={`hs ${p?'hsl':'hsc'}`}><span className="dot"/>{p?`IN: ${p.symbol}`:'IN CASH'}</span>
+    </div></div>);
+}
+
+function ABanner({s,p,pf,w,onEnter,onExit}){
+  let cls,lbl,hd,ex,ds=[];
+  if(p){
+    const pnl=p.unrealized_pnl||0;
+    if(pnl>=0){cls='abh';lbl='HOLD POSITION';hd=`${p.symbol} is up +${pnl.toFixed(1)}% — let it run`;
+      ex=p.partial_exited?`Partial profits taken. Trailing stop active. The system will signal when to exit the rest.`:`Profitable but hasn't hit the first target ($${p.target?.toFixed(2)||'—'}). When it does: sell 25%, move stop to breakeven.`;
+    }else{cls='abc';lbl='HOLD — WATCHING STOP';hd=`${p.symbol} is ${pnl.toFixed(1)}% — stop is your safety net`;
+      ex=`Position is down but above stop at $${p.stop?.toFixed(2)||'—'}. Max loss limited to ~${p.entry_price&&p.stop?((p.entry_price-p.stop)/p.entry_price*100).toFixed(1):'5'}%. Don't panic sell.`;
+    }
+    ds=[{l:'Entry',v:`$${p.entry_price?.toFixed(2)}`},{l:'Current',v:`$${p.current_price?.toFixed(2)||'—'}`},{l:'P&L',v:`${pnl>=0?'+':''}${pnl.toFixed(1)}%`},{l:'Stop',v:`$${p.stop?.toFixed(2)||'—'}`}];
+  }else if(s.direction!=='HOLD'&&s.strength!=='NO_ENTRY'){
+    const strong=s.strength==='STRONG_ENTRY';cls=strong?'aby':'abc';
+    lbl=strong?'ENTRY SIGNAL — ALL 4 PILLARS ✓':'ENTRY SIGNAL — 3 OF 4 PILLARS ✓';
+    hd=`Buy ${s.asset} (${NM[s.asset]||s.asset})`;
+    const dirE=s.direction==='LONG'?`Long — profit when ${s.asset} goes up.`:'Inverse — profit when market falls.';
+    ex=strong?`All 4 pillars aligned. High confidence. ${dirE} Enter at tomorrow's open.`:`3/4 pillars aligned. Valid entry. ${dirE} Enter at tomorrow's open.`;
+    if(s.tier>1)ex+=` System recommends ${TR[s.tier]?.toLowerCase()} — equities aren't favorable.`;
+    ds=[{l:'Asset',v:`${s.asset}`},{l:'Direction',v:s.direction==='LONG'?'Long':'Inverse'},{l:'Confidence',v:`${s.score}/4`},{l:'Tier',v:`${s.tier} — ${TR[s.tier]?.split('—')[0]||''}`}];
+  }else{
+    cls='abh';lbl='NO ACTION — STAY IN CASH';hd='No entry signal';
+    ex='None of the 5 assets show strong enough alignment across the 4 pillars. Cash is a valid position — wait for conditions to improve.';
+    ds=[{l:'Cash',v:`$${pf.cash?.toLocaleString()}`}];
+  }
+  const dt=s.details||'';
+  const pills=[
+    {nm:'Stage',y:dt.includes('Stage=Y'),yd:'Confirmed tradeable stage',nd:'Not in tradeable stage'},
+    {nm:'Trend',y:dt.includes('Trend=Y'),yd:'Moving averages aligned',nd:'Trend unclear'},
+    {nm:'Volatility',y:dt.includes('Vol=Y'),yd:'VIX + Bollinger favorable',nd:'Vol unfavorable'},
+    {nm:'Volume',y:dt.includes('Volume=Y'),yd:'Breadth confirms',nd:'No confirmation'},
+  ];
+  const lc=cls.includes('y')?'var(--grn)':cls.includes('c')?'var(--amb)':'var(--blu)';
+  return(
+    <div className={`ab ${cls}`}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div><div className="abl" style={{color:lc}}>{lbl}</div><div className="abhe">{hd}</div></div>
+        <div style={{display:'flex',gap:8}}>
+          {!p&&s.direction!=='HOLD'&&s.strength!=='NO_ENTRY'&&<button className="btn btn-g" onClick={onEnter}>✓ Log Entry</button>}
+          {p&&<button className="btn btn-r" onClick={onExit}>Log Exit</button>}
+        </div>
+      </div>
+      <div className="abx">{ex}</div>
+      <div className="abd">{ds.map((d,i)=><div key={i}><div className="abdl">{d.l}</div><div className="abdv">{d.v}</div></div>)}</div>
+      {s.score!=null&&<div className="pls">{pills.map(p=><div key={p.nm} className={`pl ${p.y?'ply':'pln'}`}><div className="plnm">{p.y?'✓':'✗'} {p.nm}</div><div className="pld">{p.y?p.yd:p.nd}</div></div>)}</div>}
+    </div>);
+}
+
+function ActionChecklist({signal}){
+  const s=signal;
+  return(
+    <div className="cd sec">
+      <div className="cl">NEXT STEPS — HOW TO EXECUTE THIS TRADE</div>
+      <ol className="checklist">
+        <li><span className="chk-num">1</span><div><strong>Place order</strong> — Buy {s.asset} ({NM[s.asset]||''}) at tomorrow's market open. Use a market order or limit near current price.</div></li>
+        <li><span className="chk-num">2</span><div><strong>Log your entry</strong> — Click "Log Entry" above and enter your fill price. The system will calculate your stop loss and target.</div></li>
+        <li><span className="chk-num">3</span><div><strong>Set stop loss</strong> — Place a stop-loss order at the price shown. This protects you if the trade goes wrong.</div></li>
+        <li><span className="chk-num">4</span><div><strong>Set price alert</strong> — Set an alert at the first target price. When triggered, sell 25% and move your stop to breakeven.</div></li>
+        <li><span className="chk-num">5</span><div><strong>Check daily</strong> — Run the dashboard each evening after market close. It will tell you if anything changes.</div></li>
+      </ol>
+    </div>
+  );
+}
+
+function PosCard({p,onExit}){
+  const pnl=p.unrealized_pnl||0,pc=pnl>=0?'var(--grn)':'var(--red)';
+  const stop=p.stop||0,tgt=p.target||0,cur=p.current_price||0,ent=p.entry_price||0;
+  let bar=50;if(tgt>stop)bar=Math.max(0,Math.min(100,((cur-stop)/(tgt-stop))*100));
+  return(
+    <div className="cd sec"><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
+    <div><div className="cl">YOUR POSITION</div><div style={{fontFamily:'var(--mono)',fontSize:24,fontWeight:700,color:'var(--txb)'}}>{p.symbol} <span style={{fontSize:14,fontWeight:400,color:'var(--txd)'}}>{NM[p.symbol]||''} — {p.direction==='LONG'?'Long':'Inverse'}</span></div></div>
+    <div style={{textAlign:'right'}}><div style={{fontFamily:'var(--mono)',fontSize:24,fontWeight:700,color:pc}}>{pnl>=0?'+':''}{pnl.toFixed(2)}%</div><div style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--txd)'}}>since {p.entry_date}</div></div></div>
+    <div className="pb"><div className="pbl" style={{color:'var(--red)'}}>Stop ${stop.toFixed(2)}</div><div className="pt"><div className="pf" style={{width:`${bar}%`,background:pc}}/></div><div className="pbl" style={{color:'var(--grn)'}}>Target ${tgt.toFixed(2)}</div></div>
+    <div className="pvs">
+      <div className="pv"><div className="pvl">⛔ Stop Loss Order</div><div className="pvv" style={{color:'var(--red)'}}>${stop.toFixed(2)}</div><div className="pve">{p.partial_exited?'At breakeven — risk eliminated':'Set this as a stop-loss order with your broker'}</div></div>
+      <div className="pv"><div className="pvl">Entry Price</div><div className="pvv" style={{color:'var(--txb)'}}>${ent.toFixed(2)}</div><div className="pve">Your cost basis</div></div>
+      <div className="pv"><div className="pvl">{p.partial_exited?'🔄 Trailing Stop':'🎯 Price Alert'}</div><div className="pvv" style={{color:'var(--grn)'}}>${tgt.toFixed(2)}</div><div className="pve">{p.partial_exited?'System manages — check daily':'Set alert: sell 25% here, move stop to breakeven'}</div></div>
+    </div>
+    <div style={{marginTop:12,display:'flex',gap:8}}>
+      {!p.partial_exited&&<button className="btn btn-g btn-sm" onClick={onExit}>Log Partial Exit (hit target)</button>}
+      <button className="btn btn-r btn-sm" onClick={onExit}>Log Full Exit</button>
+    </div>
+    </div>);
+}
+
+function EntryModal({signal,onSubmit,onClose}){
+  const[sym,setSym]=useState(signal.asset||'SPY');
+  const[dir,setDir]=useState(signal.direction||'LONG');
+  const[price,setPrice]=useState('');
+  const[capital,setCapital]=useState('');
+  return(<div className="modal-bg" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}>
+    <div className="cl" style={{marginBottom:16}}>LOG TRADE ENTRY</div>
+    <div className="form-row"><div className="form-grp"><label className="form-lbl">Symbol</label><select value={sym} onChange={e=>setSym(e.target.value)}><option>SPY</option><option>QQQ</option><option>TLT</option><option>UUP</option><option>UDN</option><option>SH</option><option>PSQ</option></select></div>
+    <div className="form-grp"><label className="form-lbl">Direction</label><select value={dir} onChange={e=>setDir(e.target.value)}><option value="LONG">Long</option><option value="LONG_INVERSE">Inverse</option></select></div></div>
+    <div className="form-row"><div className="form-grp"><label className="form-lbl">Entry Price ($)</label><input type="number" step="0.01" value={price} onChange={e=>setPrice(e.target.value)} placeholder="Your fill price"/></div>
+    <div className="form-grp"><label className="form-lbl">Capital Invested ($)</label><input type="number" step="0.01" value={capital} onChange={e=>setCapital(e.target.value)} placeholder="Optional"/></div></div>
+    <div style={{display:'flex',gap:8,marginTop:16}}>
+      <button className="btn btn-g" disabled={!price} onClick={()=>onSubmit({symbol:sym,direction:dir,entry_price:parseFloat(price),capital:capital?parseFloat(capital):undefined})}>Confirm Entry</button>
+      <button className="btn" onClick={onClose}>Cancel</button>
+    </div>
+  </div></div>);
+}
+
+function ExitModal({position,onSubmit,onClose}){
+  const[price,setPrice]=useState('');
+  const[reason,setReason]=useState('STOP_HIT');
+  const[partial,setPartial]=useState(false);
+  return(<div className="modal-bg" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}>
+    <div className="cl" style={{marginBottom:16}}>LOG TRADE EXIT — {position?.symbol}</div>
+    <div className="form-row"><div className="form-grp"><label className="form-lbl">Exit Price ($)</label><input type="number" step="0.01" value={price} onChange={e=>setPrice(e.target.value)} placeholder="Your fill price"/></div>
+    <div className="form-grp"><label className="form-lbl">Reason</label><select value={reason} onChange={e=>setReason(e.target.value)}><option value="STOP_HIT">Stop Loss Hit</option><option value="TARGET_HIT">Target Hit</option><option value="STAGE_CHANGE">Stage Changed</option><option value="VIX_EMERGENCY">VIX Emergency</option><option value="MANUAL">Manual Exit</option></select></div></div>
+    <div style={{marginBottom:12}}><label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontFamily:'var(--mono)',fontSize:12,color:'var(--tx)'}}><input type="checkbox" checked={partial} onChange={e=>setPartial(e.target.checked)}/> Partial exit (sell 25%, keep rest)</label></div>
+    <div style={{display:'flex',gap:8}}>
+      <button className={`btn ${partial?'btn-b':'btn-r'}`} disabled={!price} onClick={()=>onSubmit({exit_price:parseFloat(price),exit_reason:reason,partial})}>{partial?'Log Partial Exit':'Log Full Exit'}</button>
+      <button className="btn" onClick={onClose}>Cancel</button>
+    </div>
+  </div></div>);
+}
+
+function CapitalModal({current,onSubmit,onClose}){
+  const[cap,setCap]=useState(current||100000);
+  return(<div className="modal-bg" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}>
+    <div className="cl" style={{marginBottom:16}}>SET PORTFOLIO CAPITAL</div>
+    <p style={{fontSize:13,color:'var(--txd)',marginBottom:12}}>Enter your total portfolio value. This is used to track performance and calculate position sizes.</p>
+    <div className="form-row"><div className="form-grp"><label className="form-lbl">Total Capital ($)</label><input type="number" step="0.01" value={cap} onChange={e=>setCap(parseFloat(e.target.value))}/></div></div>
+    <div style={{display:'flex',gap:8,marginTop:12}}>
+      <button className="btn btn-b" onClick={()=>onSubmit(cap)}>Save</button>
+      <button className="btn" onClick={onClose}>Cancel</button>
+    </div>
+  </div></div>);
+}
+
+function StgCard({stages}){return(<div className="cd">
+  <div style={{display:'flex',alignItems:'center',marginBottom:12}}><div className="cl" style={{marginBottom:0}}>STAGE ANALYSIS</div>
+  <span className="hi">?<span className="ht">Assets cycle through 4 stages: <b>1) Accumulation</b> (base), <b>2) Advancing</b> (buy), <b>3) Distribution</b> (exit), <b>4) Declining</b> (inverse/cash). System buys Stage 2, goes inverse Stage 4.</span></span></div>
+  {Object.entries(stages).map(([sym,info])=>{const si=STG[info.stage]||STG.TRANSITIONAL;return(<div key={sym} className="sr"><div style={{display:'flex',alignItems:'center'}}><span className="ssm">{sym}</span><span className="snm">{NM[sym]||sym}</span></div><span className={`sb ${si.c}`}>{si.n} {si.l}</span></div>);})}
+  <div style={{fontSize:11,color:'var(--txd)',marginTop:12,lineHeight:1.5,paddingTop:10,borderTop:'1px solid var(--bdr)'}}>Checks equities first → bonds → dollar → cash. Protects capital in downturns.</div>
+</div>);}
+
+function MktCard({vix,w,vol}){
+  const rg=(vix?.regime||'UNKNOWN').toLowerCase();
+  const vc=rg==='low'?'var(--grn)':rg==='normal'?'var(--blu)':rg==='elevated'?'var(--amb)':'var(--red)';
+  const ve={low:'Market calm. Good for trends.',normal:'Typical. System operates normally.',elevated:'Fear rising. More cautious.',high:'High fear. Prefer inverse/cash.',extreme:'Crisis. Exit everything.'};
+  const we={'DEFENSIVE ROTATION':'Utilities outperforming — often precedes corrections.','COMMODITY CYCLE':'Gold rising, stocks topping — possible inflation fears.','DIVERGENCE':'Stocks+bonds both falling — dollar likely strengthening.'};
+
+  // Volume interpretation
+  const pr=vol?.panic_ratio;const fr=vol?.fomo_ratio;
+  let volColor='var(--txd)',volStatus='No data',volExplain='NYSE volume data unavailable. Volume pillar defaults to neutral.';
+  if(vol?.available&&pr!=null&&fr!=null){
+    if(pr>=3){volColor='var(--red)';volStatus='PANIC';volExplain=`Down volume is ${pr.toFixed(1)}x up volume. Heavy selling pressure across NYSE. Contrarian signal — panic selling often marks bottoms.`;}
+    else if(fr>=3){volColor='var(--amb)';volStatus='EUPHORIA';volExplain=`Up volume is ${fr.toFixed(1)}x down volume. Extreme buying enthusiasm. Can signal a top — be cautious with new entries.`;}
+    else if(fr>1.5){volColor='var(--grn)';volStatus='BULLISH';volExplain=`Up volume leads down volume ${fr.toFixed(1)}:1. Healthy buying pressure supports the current trend.`;}
+    else if(pr>1.5){volColor='var(--amb)';volStatus='BEARISH';volExplain=`Down volume leads up volume ${pr.toFixed(1)}:1. Selling pressure increasing — the system factors this into entry decisions.`;}
+    else{volColor='var(--blu)';volStatus='NEUTRAL';volExplain='Up and down volume roughly balanced. No strong directional bias from market breadth.';}
+  }
+
+  return(<div className="cd"><div className="cl">MARKET CONDITIONS</div>
+    {/* VIX */}
+    <div style={{marginBottom:16}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+        <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--txd)'}}>VIX<span className="hi">?<span className="ht">Fear gauge. &lt;15=calm, 15-25=normal, 25-35=elevated, &gt;35=high, &gt;40=system exits all.</span></span></span>
+        <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--txd)'}}>{vix?.trend==='RISING'?'↑':'↓'} {vix?.trend}</span></div>
+      <div style={{display:'flex',alignItems:'baseline',gap:10}}>
+        <span style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:600,color:vc}}>{vix?.close?.toFixed(1)||'—'}</span>
+        <span style={{fontFamily:'var(--mono)',fontSize:12,padding:'2px 8px',borderRadius:4,background:`${vc}15`,color:vc}}>{vix?.regime||'?'}</span></div>
+      <div style={{fontSize:12,color:'var(--txd)',marginTop:4}}>{ve[rg]||''}</div></div>
+
+    {/* Volume Breadth */}
+    <div style={{marginBottom:16,paddingTop:12,borderTop:'1px solid var(--bdr)'}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+        <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--txd)'}}>NYSE BREADTH<span className="hi">?<span className="ht">NYSE Advance/Decline ratio scraped daily from Barchart.com ($ADRN). Ratio = advancing volume ÷ declining volume. <b>&gt;1.0</b> = more stocks advancing (bullish). <b>&lt;1.0</b> = more declining (bearish). <b>Panic ratio</b> ≥3 = extreme selling (contrarian buy signal). <b>FOMO ratio</b> ≥3 = extreme buying (warns of top, blocks new entries). Historical data uses RSP vs SPY as breadth proxy.</span></span></span>
+        <span style={{fontFamily:'var(--mono)',fontSize:11,color:vol?.favorable?'var(--grn)':'var(--txd)'}}>{vol?.favorable?'✓ Favorable':'—'}</span></div>
+      {vol?.available&&pr!=null?(<div>
+        <div style={{display:'flex',alignItems:'baseline',gap:10}}>
+          <span style={{fontFamily:'var(--mono)',fontSize:20,fontWeight:600,color:volColor}}>{volStatus}</span>
+        </div>
+        {vol?.nyse_ad_ratio!=null&&<div style={{display:'flex',alignItems:'baseline',gap:8,marginTop:6}}>
+          <span style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--txd)'}}>NYSE A/D RATIO:</span>
+          <span style={{fontFamily:'var(--mono)',fontSize:16,fontWeight:600,color:vol.nyse_ad_ratio>=1?'var(--grn)':'var(--red)'}}>{vol.nyse_ad_ratio.toFixed(3)}</span>
+          <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--txd)'}}>(from Barchart $ADRN)</span>
+        </div>}
+        <div style={{display:'flex',gap:16,marginTop:6}}>
+          <div><div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--txd)'}}>PANIC RATIO</div><div style={{fontFamily:'var(--mono)',fontSize:14,fontWeight:500,color:pr>=3?'var(--red)':'var(--tx)'}}>{pr?.toFixed(2)||'—'}</div></div>
+          <div><div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--txd)'}}>FOMO RATIO</div><div style={{fontFamily:'var(--mono)',fontSize:14,fontWeight:500,color:fr>=3?'var(--amb)':'var(--tx)'}}>{fr?.toFixed(2)||'—'}</div></div>
+          <div><div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--txd)'}}>PANIC MA</div><div style={{fontFamily:'var(--mono)',fontSize:14,fontWeight:500,color:'var(--tx)'}}>{vol?.panic_ratio_ma?.toFixed(2)||'—'}</div></div>
+          <div><div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--txd)'}}>FOMO MA</div><div style={{fontFamily:'var(--mono)',fontSize:14,fontWeight:500,color:'var(--tx)'}}>{vol?.fomo_ratio_ma?.toFixed(2)||'—'}</div></div>
+        </div>
+        <div style={{fontSize:12,color:'var(--txd)',marginTop:6,lineHeight:1.4}}>{volExplain}</div>
+        {vol?.flags?.length>0&&vol.flags.map((f,i)=><div key={i} style={{marginTop:4,fontSize:11,color:'var(--amb)',fontFamily:'var(--mono)'}}>⚠ {f}</div>)}
+      </div>):(<div style={{fontSize:12,color:'var(--txd)',marginTop:4}}>{volExplain}</div>)}
+    </div>
+
+    {/* Warnings */}
+    {w.length>0?(<div><div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--txd)',marginBottom:8}}>WARNINGS</div>
+      {w.map((x,i)=>{const k=Object.keys(we).find(k=>x.includes(k));return(<div key={i} className="wn"><span style={{fontSize:14}}>⚠</span><div><div className="wnt">{x}</div>{k&&<div className="wne">{we[k]}</div>}</div></div>);})}</div>
+    ):(<div style={{padding:8,textAlign:'center',color:'var(--txd)',fontSize:11,fontFamily:'var(--mono)'}}>No warnings</div>)}
+  </div>);
+}
+
+function NarrativeCard({data}){
+  if(!data)return null;
+  const stg=data.stages||{};const vix=data.vix||{};const vol=data.volume||{};
+  const sig=data.signal||{};const ind=data.indicators||{};const w=data.warnings||[];
+  const pos=data.position;
+
+  // Gather facts
+  const syms=['SPY','QQQ','TLT','UUP','UDN'];
+  const s2=syms.filter(s=>stg[s]?.stage?.includes('2'));
+  const s4=syms.filter(s=>stg[s]?.stage?.includes('4'));
+  const s3=syms.filter(s=>stg[s]?.stage?.includes('3'));
+  const allS2=s2.length===5;const equitiesS2=stg.SPY?.stage?.includes('2')&&stg.QQQ?.stage?.includes('2');
+
+  const vixClose=vix.close||0;const vixRegime=vix.regime||'';const vixTrend=vix.trend||'';
+  const adRatio=vol.nyse_ad_ratio;const fomo=vol.fomo_ratio;const panic=vol.panic_ratio;
+  const volFav=vol.favorable;
+
+  const spyInd=ind.SPY||{};const qqqInd=ind.QQQ||{};
+  const spySlope=spyInd.sma_150_slope||0;const qqqSlope=qqqInd.sma_150_slope||0;
+  const spyRS=spyInd.relative_strength||0;const qqqRS=qqqInd.relative_strength||0;
+
+  const hasDefRotation=w.some(x=>typeof x==='string'?x.includes('DEFENSIVE'):x?.name?.includes('DEFENSIVE'));
+  const hasDivergence=w.some(x=>typeof x==='string'?x.includes('DIVERGENCE'):x?.name?.includes('DIVERGENCE'));
+
+  const score=sig.score||0;const sigAsset=sig.asset||'';
+
+  // Build narrative paragraphs
+  const parts=[];
+
+  // 1. Stage overview
+  if(allS2){
+    parts.push('All five tracked assets are in Stage 2 (advancing), which is the strongest possible configuration. Equities, bonds, and dollar pairs are all in confirmed uptrends.');
+  }else if(equitiesS2&&s2.length>=3){
+    const others=s2.filter(s=>s!=='SPY'&&s!=='QQQ').map(s=>({SPY:'S&P 500',QQQ:'Nasdaq',TLT:'bonds',UUP:'US dollar (bull)',UDN:'US dollar (bear)'}[s]||s));
+    parts.push(`SPY and QQQ are both in Stage 2 (advancing), confirming the equity uptrend.${others.length?' '+others.join(' and ')+' also advancing.':''} ${s4.length?s4.join(', ')+' in Stage 4 (declining) — worth monitoring.':''}`);
+  }else if(s4.length>=3){
+    parts.push(`${s4.length} of 5 assets are in Stage 4 (declining). This is a broad deterioration across asset classes — the system favors cash or inverse positions in this environment.`);
+  }else{
+    const advancing=s2.length;const declining=s4.length;
+    parts.push(`Mixed picture: ${advancing} asset${advancing!==1?'s':''} advancing, ${declining} declining. The system is selective about entries in this environment.`);
+  }
+
+  // 2. VIX context
+  if(vixClose<15){
+    parts.push(`VIX at ${vixClose.toFixed(1)} signals market complacency — very low fear. Good for trend-following, but extreme calm can precede sudden volatility spikes.`);
+  }else if(vixClose<20){
+    parts.push(`VIX at ${vixClose.toFixed(1)} is in the normal range${vixTrend==='RISING'?' and trending higher':vixTrend==='FALLING'?' and trending lower':''}. Standard conditions for the system to operate — no fear-driven adjustments needed.`);
+  }else if(vixClose<25){
+    parts.push(`VIX at ${vixClose.toFixed(1)} is at the upper end of normal${vixTrend==='RISING'?' and still rising, which bears watching':''}. Not yet elevated, but the system is paying attention.`);
+  }else if(vixClose<35){
+    parts.push(`VIX at ${vixClose.toFixed(1)} is elevated — fear is above average. The system becomes more cautious with new entries and tightens risk management. ${vixTrend==='RISING'?'Still rising — conditions could deteriorate further.':'Trend is stabilizing.'}`);
+  }else{
+    parts.push(`VIX at ${vixClose.toFixed(1)} is in crisis territory. ${vixClose>=40?'Above 40 triggers an emergency exit of all positions.':'Approaching the emergency threshold of 40.'} Capital preservation is the priority.`);
+  }
+
+  // 3. Breadth
+  if(adRatio!=null){
+    if(fomo>=3){
+      parts.push(`NYSE breadth is showing euphoria with an A/D ratio of ${adRatio.toFixed(3)} — advancing volume far exceeds declining. While this seems positive, extreme one-sided buying often occurs near market tops. The volume pillar is blocking new entries as a precaution.`);
+    }else if(panic>=3){
+      parts.push(`NYSE breadth shows panic selling with heavy declining volume (A/D ratio ${adRatio.toFixed(3)}). Counterintuitively, extreme panic often marks bottoms — the volume pillar treats this as a contrarian buy signal.`);
+    }else if(adRatio>1.3){
+      parts.push(`NYSE breadth is healthy at ${adRatio.toFixed(3)} — advancing volume comfortably leads declining. This broad participation confirms the rally isn't being driven by just a handful of mega-cap stocks.`);
+    }else if(adRatio>0.8){
+      parts.push(`NYSE breadth is neutral at ${adRatio.toFixed(3)} — advancing and declining volume roughly balanced. No strong directional signal from market internals.`);
+    }else{
+      parts.push(`NYSE breadth is weak at ${adRatio.toFixed(3)} — declining volume exceeds advancing. Even if indices look okay, the underlying participation is deteriorating.`);
+    }
+  }
+
+  // 4. Trend quality from indicators
+  if(spySlope>0.5&&qqqSlope>0.5){
+    const stronger=spyRS>qqqRS?'SPY showing stronger relative momentum':'QQQ leading in relative strength';
+    parts.push(`Both SPY and QQQ have positive 150-day moving average slopes (+${spySlope.toFixed(1)}% and +${qqqSlope.toFixed(1)}%), confirming the medium-term uptrend is intact. ${stronger}.`);
+  }else if(spySlope>0&&qqqSlope>0){
+    parts.push(`SPY and QQQ slopes are positive but modest (+${spySlope.toFixed(1)}% and +${qqqSlope.toFixed(1)}%). The trend is up but momentum is not strong — typical of a maturing move.`);
+  }else if(spySlope<0||qqqSlope<0){
+    const neg=[spySlope<0?'SPY':null,qqqSlope<0?'QQQ':null].filter(Boolean);
+    parts.push(`${neg.join(' and ')} ${neg.length>1?'have':'has a'} negative 150-day slope — the medium-term trend is bending lower. This is a warning sign even if prices haven't broken down yet.`);
+  }
+
+  // 5. Warnings
+  if(hasDefRotation){
+    parts.push('Utilities are outperforming the S\u0026P 500, a classic defensive rotation signal. Institutional investors often shift to utilities before broader market weakness. This doesn\'t mean sell immediately, but it\'s a yellow flag that has historically preceded corrections.');
+  }
+  if(hasDivergence){
+    parts.push('Stocks and bonds are both falling simultaneously — an unusual divergence that typically points to dollar strength or liquidity tightening. This cross-asset stress signal warrants extra caution.');
+  }
+
+  // 6. Bottom line
+  let bottom='';
+  if(pos){
+    const pnl=pos.unrealized_pnl||0;
+    bottom=`Bottom line: You\'re in ${pos.symbol} at $${pos.entry_price?.toFixed(2)} with a stop at $${pos.stop?.toFixed(2)}. ${pnl>=0?'The position is working — ':'The position is underwater but '}${equitiesS2&&vixClose<25&&volFav?'conditions remain supportive. Hold and let the trade play out.':hasDefRotation||vixClose>=25?'keep a close eye on your stop — conditions are showing some stress.':'continue to hold.'}`;
+  }else if(score>=3&&sigAsset!=='BIL'){
+    bottom=`Bottom line: The system sees an entry opportunity in ${sigAsset} with ${score}/4 pillars aligned. ${score===4?'This is a high-confidence setup.':'The signal is valid but not at full strength — size accordingly.'}`;
+  }else{
+    bottom=`Bottom line: No trade right now. ${allS2&&vixClose<25?'Conditions are favorable but the full confluence of signals hasn\'t lined up yet. Patience.':'The system is waiting for better alignment across all four pillars before committing capital.'}`;
+  }
+  parts.push(bottom);
+
+  return(<div className="cd sec">
+    <div className="cl" style={{marginBottom:8}}>MARKET NARRATIVE</div>
+    <div style={{fontSize:13,color:'var(--tx)',lineHeight:1.7}}>
+      {parts.map((p,i)=><p key={i} style={{marginBottom:i<parts.length-1?10:0,color:i===parts.length-1?'var(--txb)':'var(--tx)',fontWeight:i===parts.length-1?500:400}}>{p}</p>)}
+    </div>
+  </div>);
+}
+
+function TrdCard({trades}){return(<div className="cd">
+  <div style={{display:'flex',alignItems:'center',marginBottom:12}}><div className="cl" style={{marginBottom:0}}>TRADE HISTORY</div>
+  <span className="hi">?<span className="ht">Your actual trades. Target: 5-12/year, ~60% win rate, 2:1 reward-to-risk.</span></span></div>
+  {(!trades||trades.length===0)?(<div style={{padding:16,textAlign:'center',color:'var(--txd)',fontFamily:'var(--mono)',fontSize:12}}>No trades yet. Log your first entry when a signal appears.</div>
+  ):(<div style={{overflowX:'auto'}}><table className="tt"><thead><tr><th>Symbol</th><th>Dir</th><th>Entry</th><th>Exit</th><th style={{textAlign:'right'}}>P&L</th><th>Reason</th></tr></thead><tbody>
+    {trades.slice(0,15).map((t,i)=>(<tr key={i}>
+      <td style={{fontWeight:600,color:'var(--txb)',fontFamily:'var(--mono)'}}>{t.symbol}</td>
+      <td style={{color:t.direction==='LONG'?'var(--grn)':'var(--red)',fontFamily:'var(--mono)',fontSize:11}}>{t.direction==='LONG'?'Long':'Inv'}</td>
+      <td style={{fontFamily:'var(--mono)',fontSize:11}}>{t.entry_date}</td>
+      <td style={{fontFamily:'var(--mono)',fontSize:11}}>{t.exit_date||'Open'}</td>
+      <td style={{textAlign:'right',color:(t.pnl_pct||0)>=0?'var(--grn)':'var(--red)',fontWeight:500,fontFamily:'var(--mono)'}}>{t.pnl_pct!=null?`${t.pnl_pct>=0?'+':''}${t.pnl_pct.toFixed(1)}%`:'—'}</td>
+      <td style={{color:'var(--txd)',fontSize:11}}>{t.exit_reason==='STOP_HIT'?'Stop hit':t.exit_reason==='VIX_EMERGENCY'?'VIX emergency':t.exit_reason==='STAGE_CHANGE'?'Stage change':t.exit_reason==='TARGET_HIT'?'Target hit':t.exit_reason||'—'}</td>
+    </tr>))}</tbody></table></div>)}
+</div>);}
+
+function IndCard({ind}){if(!ind)return null;return(<div className="cd">
+  <div style={{display:'flex',alignItems:'center',marginBottom:12}}><div className="cl" style={{marginBottom:0}}>INDICATORS</div>
+  <span className="hi">?<span className="ht"><b>Close:</b> Price. <b>SMA 50/150:</b> Trend lines. <b>Slope:</b> 150d MA momentum (&gt;+0.5%=uptrend). <b>RS:</b> Strength vs 50d MA.</span></span></div>
+  <div className="ig igh"><div></div><div>Close</div><div>SMA50</div><div>SMA150</div><div>Slope</div><div>RS</div></div>
+  {Object.entries(ind).map(([sym,d])=>(<div key={sym} className="ig">
+    <div style={{fontWeight:600,color:'var(--txb)'}}>{sym}</div>
+    <div>${d.close?.toFixed(2)||'—'}</div><div>{d.sma_50?.toFixed(1)||'—'}</div><div>{d.sma_150?.toFixed(1)||'—'}</div>
+    <div style={{color:(d.sma_150_slope||0)>.5?'var(--grn)':(d.sma_150_slope||0)<-.5?'var(--red)':'var(--txd)'}}>{d.sma_150_slope!=null?`${d.sma_150_slope>0?'+':''}${d.sma_150_slope.toFixed(2)}%`:'—'}</div>
+    <div style={{color:(d.relative_strength||0)>0?'var(--grn)':'var(--red)'}}>{d.relative_strength!=null?`${d.relative_strength>0?'+':''}${d.relative_strength.toFixed(1)}%`:'—'}</div>
+  </div>))}
+</div>);}
+
+function EmailModal({onClose,showToast}){
+  const[cfg,setCfg]=useState({recipient_email:'',smtp_server:'smtp.gmail.com',smtp_port:587,smtp_user:'',smtp_password:'',reply_to_email:'',report_hour:17,report_minute:0,report_days:'0,1,2,3,4,5',enabled:true});
+  const[loaded,setLoaded]=useState(false);const[saving,setSaving]=useState(false);const[testing,setTesting]=useState(false);
+  const[sched,setSched]=useState(null);const[installing,setInstalling]=useState(false);
+  const loadCfg=()=>{
+    fetch(`${API}/api/email-config`).then(r=>r.json()).then(d=>{if(d&&d.recipient_email){setCfg(prev=>({...prev,...d}));}setLoaded(true);}).catch(()=>setLoaded(true));
+    fetch(`${API}/api/scheduler/status`).then(r=>r.json()).then(d=>setSched(d)).catch(()=>{});
+  };
+  useEffect(()=>{loadCfg();},[]);
+  const save=async()=>{setSaving(true);try{await post('/api/email-config',cfg);showToast('Email settings saved');}catch(e){showToast(e.message,false);}finally{setSaving(false);}};
+  const test=async()=>{setTesting(true);try{const r=await post('/api/test-email',{});showToast(r.message||'Test email sent!');}catch(e){showToast(e.message||'Failed to send test email',false);}finally{setTesting(false);}};
+  const doInstall=async()=>{setInstalling(true);try{await save();const r=await post('/api/scheduler/install',{});showToast(r.message||'Scheduler installed!');loadCfg();}catch(e){showToast(e.message||'Install failed',false);}finally{setInstalling(false);}};
+  const doUninstall=async()=>{setInstalling(true);try{const r=await post('/api/scheduler/uninstall',{});showToast(r.message||'Scheduler removed');loadCfg();}catch(e){showToast(e.message,false);}finally{setInstalling(false);}};
+
+  const dayLabels=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const activeDays=(cfg.report_days||'').split(',').map(d=>parseInt(d.trim())).filter(d=>!isNaN(d));
+  const toggleDay=(d)=>{const s=new Set(activeDays);if(s.has(d))s.delete(d);else s.add(d);setCfg({...cfg,report_days:[...s].sort().join(',')});};
+
+  return(<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:999}} onClick={onClose}>
+    <div style={{background:'var(--bgc)',border:'1px solid var(--bdr)',borderRadius:12,padding:24,width:520,maxWidth:'90vw',maxHeight:'90vh',overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
+      <div style={{fontFamily:'var(--mono)',fontSize:14,fontWeight:600,color:'var(--txb)',marginBottom:4}}>✉ Email Report Settings</div>
+      <div style={{fontSize:12,color:'var(--txd)',marginBottom:16,lineHeight:1.5}}>
+        Get a daily report emailed after market close with clear instructions on what to do.<br/>
+        <span style={{color:'var(--amb)'}}>For Gmail:</span> Use an <a href="https://myaccount.google.com/apppasswords" target="_blank" style={{color:'var(--cyn)'}}>App Password</a> (not your regular password). Requires 2FA enabled.
+      </div>
+
+      <div className="form-row"><div className="form-grp">
+        <label className="form-lbl">Send reports to</label>
+        <input type="text" value={cfg.recipient_email} onChange={e=>setCfg({...cfg,recipient_email:e.target.value})} placeholder="you@email.com"/>
+      </div></div>
+      <div className="form-row">
+        <div className="form-grp"><label className="form-lbl">Gmail address (sender)</label>
+          <input type="text" value={cfg.smtp_user} onChange={e=>setCfg({...cfg,smtp_user:e.target.value})} placeholder="you@gmail.com"/></div>
+      </div>
+      <div className="form-row">
+        <div className="form-grp"><label className="form-lbl">App Password</label>
+          <input type="text" value={cfg.smtp_password} onChange={e=>setCfg({...cfg,smtp_password:e.target.value})} placeholder="16-character app password" style={{fontFamily:'var(--mono)',letterSpacing:cfg.smtp_password==='••••••••'?4:0}}/></div>
+      </div>
+      <div className="form-row">
+        <div className="form-grp"><label className="form-lbl">Reply-To address <span style={{color:'var(--txd)',fontWeight:400}}>(optional)</span></label>
+          <input type="text" value={cfg.reply_to_email} onChange={e=>setCfg({...cfg,reply_to_email:e.target.value})} placeholder="your-real@email.com"/></div>
+      </div>
+      <div className="form-row">
+        <div className="form-grp"><label className="form-lbl">SMTP Server</label>
+          <input type="text" value={cfg.smtp_server} onChange={e=>setCfg({...cfg,smtp_server:e.target.value})}/></div>
+        <div className="form-grp" style={{maxWidth:80}}><label className="form-lbl">Port</label>
+          <input type="number" value={cfg.smtp_port} onChange={e=>setCfg({...cfg,smtp_port:parseInt(e.target.value)||587})}/></div>
+      </div>
+
+      <div style={{borderTop:'1px solid var(--bdr)',marginTop:16,paddingTop:16}}>
+        <div style={{fontFamily:'var(--mono)',fontSize:12,fontWeight:600,color:'var(--txb)',marginBottom:8}}>⏰ SCHEDULE</div>
+        <div className="form-row">
+          <div className="form-grp" style={{maxWidth:70}}><label className="form-lbl">Hour</label>
+            <input type="number" min="0" max="23" value={cfg.report_hour} onChange={e=>setCfg({...cfg,report_hour:parseInt(e.target.value)||17})}/></div>
+          <div className="form-grp" style={{maxWidth:70}}><label className="form-lbl">Minute</label>
+            <input type="number" min="0" max="59" value={cfg.report_minute} onChange={e=>setCfg({...cfg,report_minute:parseInt(e.target.value)||0})}/></div>
+          <div className="form-grp"><label className="form-lbl">Your local time</label>
+            <div style={{fontSize:12,color:'var(--txd)',paddingTop:6}}>Market closes 1:00 PM PT / 4:00 PM ET</div></div>
+        </div>
+        <div style={{marginBottom:12}}>
+          <label className="form-lbl">Days</label>
+          <div style={{display:'flex',gap:4,marginTop:4}}>
+            {dayLabels.map((name,i)=>(
+              <button key={i} onClick={()=>toggleDay(i)}
+                style={{fontFamily:'var(--mono)',fontSize:10,padding:'4px 8px',borderRadius:4,border:'1px solid',cursor:'pointer',
+                  background:activeDays.includes(i)?'rgba(0,214,143,.15)':'transparent',
+                  borderColor:activeDays.includes(i)?'rgba(0,214,143,.3)':'var(--bdr)',
+                  color:activeDays.includes(i)?'var(--grn)':'var(--txd)'}}>{name}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
+        <button className="btn btn-g" onClick={save} disabled={saving}>{saving?'Saving...':'Save Settings'}</button>
+        <button className="btn btn-b" onClick={test} disabled={testing||!cfg.smtp_user}>{testing?'Sending...':'Send Test Email'}</button>
+        <button className="btn" onClick={onClose}>Cancel</button>
+      </div>
+
+      <div style={{borderTop:'1px solid var(--bdr)',marginTop:16,paddingTop:16}}>
+        <div style={{fontFamily:'var(--mono)',fontSize:12,fontWeight:600,color:'var(--txb)',marginBottom:8}}>🖥 AUTOMATIC SCHEDULING</div>
+        <div style={{fontSize:12,color:'var(--txd)',marginBottom:12,lineHeight:1.5}}>
+          Install a background job that runs automatically — survives reboots, no terminal needed.
+        </div>
+        {sched?.installed?(
+          <div>
+            <div style={{padding:10,borderRadius:6,background:'rgba(0,214,143,.08)',border:'1px solid rgba(0,214,143,.2)',marginBottom:10}}>
+              <div style={{fontSize:12,color:'var(--grn)',fontFamily:'var(--mono)',fontWeight:600}}>✓ Scheduler active</div>
+              <div style={{fontSize:11,color:'var(--txd)',marginTop:4}}>Schedule: {sched.schedule||'?'}</div>
+              {sched.last_run&&<div style={{fontSize:11,color:'var(--txd)',marginTop:2}}>Last: {sched.last_run}</div>}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-g" onClick={doInstall} disabled={installing}>{installing?'Updating...':'Update Schedule'}</button>
+              <button className="btn btn-r" onClick={doUninstall} disabled={installing}>Remove Scheduler</button>
+            </div>
+          </div>
+        ):(
+          <button className="btn btn-g" onClick={doInstall} disabled={installing||!cfg.smtp_user}>
+            {installing?'Installing...':'Enable Automatic Reports'}
+          </button>
+        )}
+      </div>
+
+    </div>
+  </div>);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
