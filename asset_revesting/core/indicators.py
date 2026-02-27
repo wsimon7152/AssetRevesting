@@ -22,7 +22,8 @@ from asset_revesting.config import (
     VIX_TREND_FAST, VIX_TREND_SLOW, VIX_SPIKE_THRESHOLD,
     VIX_EMERGENCY_LEVEL,
     VOLUME_RATIO_MA_PERIOD,
-    ANALYSIS_SYMBOLS
+    ANALYSIS_SYMBOLS,
+    ATR_PERIOD
 )
 from asset_revesting.data.database import get_connection
 
@@ -115,6 +116,34 @@ def calc_relative_strength(close_series, sma_period=RELATIVE_STRENGTH_SMA):
     """
     sma = calc_sma(close_series, sma_period)
     return ((close_series - sma) / sma) * 100
+
+
+def calc_atr(high_series, low_series, close_series, period=ATR_PERIOD):
+    """
+    Average True Range (Wilder's ATR).
+
+    True Range = max(high-low, |high-prev_close|, |low-prev_close|)
+    ATR = Wilder's smoothed average of TR over `period` days.
+
+    Args:
+        high_series:  pd.Series of daily highs
+        low_series:   pd.Series of daily lows
+        close_series: pd.Series of daily closes
+        period:       smoothing period (default ATR_PERIOD=14)
+
+    Returns:
+        pd.Series of ATR values (NaN for first `period` rows)
+    """
+    prev_close = close_series.shift(1)
+    tr = pd.concat([
+        high_series - low_series,
+        (high_series - prev_close).abs(),
+        (low_series  - prev_close).abs(),
+    ], axis=1).max(axis=1)
+
+    # Wilder's smoothing: seed with simple mean, then exponential decay
+    atr = tr.ewm(alpha=1.0 / period, min_periods=period, adjust=False).mean()
+    return atr
 
 
 def classify_vix(vix_value):
@@ -212,28 +241,30 @@ def calc_volume_ratios(up_volume_series, down_volume_series):
 # SYMBOL-LEVEL INDICATOR COMPUTATION
 # =============================================================================
 
-def compute_symbol_indicators(close_series):
+def compute_symbol_indicators(close_series, high_series=None, low_series=None):
     """
     Compute all indicators for a single symbol's closing prices.
-    
+
     Args:
         close_series: pd.Series of closing prices (index=date)
-    
+        high_series:  pd.Series of daily highs (optional; needed for ATR)
+        low_series:   pd.Series of daily lows  (optional; needed for ATR)
+
     Returns:
         pd.DataFrame with all indicator columns
     """
     df = pd.DataFrame(index=close_series.index)
     df["close"] = close_series
-    
+
     # SMAs
     for period in SMA_PERIODS:
         df[f"sma_{period}"] = calc_sma(close_series, period)
-    
+
     # SMA Slopes (for stage analysis)
     df["sma_150_slope"] = calc_sma_slope(df["sma_150"], SLOPE_LOOKBACK)
     df["sma_200_slope"] = calc_sma_slope(df["sma_200"], SLOPE_LOOKBACK)
     df["sma_50_slope"] = calc_sma_slope(df["sma_50"], SLOPE_LOOKBACK)
-    
+
     # Bollinger Bands
     bb = calc_bollinger_bands(close_series)
     df["bb_upper"] = bb["upper"]
@@ -241,10 +272,16 @@ def compute_symbol_indicators(close_series):
     df["bb_lower"] = bb["lower"]
     df["bb_bandwidth"] = bb["bandwidth"]
     df["bb_percent_b"] = bb["percent_b"]
-    
+
     # Relative Strength
     df["relative_strength"] = calc_relative_strength(close_series)
-    
+
+    # ATR (requires high/low; gracefully skipped if not provided)
+    if high_series is not None and low_series is not None:
+        df["atr_14"] = calc_atr(high_series, low_series, close_series)
+    else:
+        df["atr_14"] = np.nan
+
     return df
 
 
@@ -269,8 +306,8 @@ def store_symbol_indicators(symbol, indicators_df, db_path=None):
                 (symbol, date, sma_5, sma_20, sma_50, sma_150, sma_200,
                  sma_150_slope, sma_200_slope, sma_50_slope,
                  bb_upper, bb_middle, bb_lower, bb_bandwidth, bb_percent_b,
-                 relative_strength)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 relative_strength, atr_14)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 symbol, date_str,
                 _safe_float(row.get("sma_5")),
@@ -287,6 +324,7 @@ def store_symbol_indicators(symbol, indicators_df, db_path=None):
                 _safe_float(row.get("bb_bandwidth")),
                 _safe_float(row.get("bb_percent_b")),
                 _safe_float(row.get("relative_strength")),
+                _safe_float(row.get("atr_14")),
             ))
 
 
@@ -366,7 +404,11 @@ def compute_all_indicators(start_date=None, end_date=None, db_path=None):
                 results[symbol] = 0
                 continue
             
-            indicators = compute_symbol_indicators(price_df["close"])
+            indicators = compute_symbol_indicators(
+                price_df["close"],
+                high_series=price_df.get("high"),
+                low_series=price_df.get("low"),
+            )
             store_symbol_indicators(symbol, indicators, db_path)
             
             # Count non-NaN rows (valid indicator values)

@@ -113,6 +113,29 @@ STAGE_CONFIRMATION_DAYS = 3
 ENTRY_STRONG_THRESHOLD = 4
 ENTRY_MODERATE_THRESHOLD = 3
 
+# =============================================================================
+# ATR-BASED DYNAMIC STOPS
+# =============================================================================
+
+# Use ATR-based stops instead of fixed percentage stops
+USE_ATR_STOPS = True
+
+# ATR calculation period
+# 🔬 Backtest range: 10 to 20
+ATR_PERIOD = 14
+
+# Stop distance = ATR_MULTIPLIER × ATR below entry
+# 🔬 Backtest range: 1.5 to 3.0
+ATR_MULTIPLIER = 3.0
+
+# Hard cap: ATR stop can never be wider than this (protects against extreme vol)
+# 🔬 Backtest range: 8% to 15%
+ATR_MAX_STOP_PCT = 0.10  # 10%
+
+# Floor: ATR stop can never be tighter than this (avoids getting shaken by noise)
+# 🔬 Backtest range: 2% to 5% — 4% prevents over-trading in calm markets
+ATR_MIN_STOP_PCT = 0.04  # 4%
+
 # Trend check: minimum conditions met (out of 5 SMA conditions)
 TREND_MIN_CONDITIONS = 4
 

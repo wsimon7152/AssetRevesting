@@ -78,6 +78,7 @@ def init_db(db_path=None):
                 bb_bandwidth REAL,
                 bb_percent_b REAL,
                 relative_strength REAL,
+                atr_14      REAL,
                 PRIMARY KEY (symbol, date)
             );
 
