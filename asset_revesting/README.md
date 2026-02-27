@@ -279,10 +279,10 @@ The scheduler creates a macOS **LaunchAgent** — a plist file at:
 ~/Library/LaunchAgents/com.assetrevesting.dailyreport.plist
 ```
 
-This is macOS's native job scheduler. It:
+This is macOS's native job scheduler. It calls Python directly (no shell scripts or cron involved). It:
 - Starts automatically at login
 - Runs at your configured time
-- Survives reboots and sleep/wake cycles
+- Survives reboots, sleep/wake cycles, and code updates
 - Logs output to `~/Library/Logs/AssetRevesting/report.log`
 
 ### Managing the Scheduler
@@ -293,17 +293,27 @@ cd ~/AssetRevesting
 # Check status
 python -m asset_revesting.run schedule-status
 
-# Update after changing settings
+# Update after changing schedule settings
 python -m asset_revesting.run schedule-install
 
 # Remove (stop automatic reports)
 python -m asset_revesting.run schedule-remove
 ```
 
+**After extracting a code update**, reinstall the scheduler to pick up any path changes:
+```bash
+cd ~/AssetRevesting
+python -m asset_revesting.run schedule-install
+```
+
 ### Viewing Logs
 
 ```bash
+# Main report output
 cat ~/Library/Logs/AssetRevesting/report.log
+
+# Errors (if report fails silently)
+cat ~/Library/Logs/AssetRevesting/report_err.log
 ```
 
 ---

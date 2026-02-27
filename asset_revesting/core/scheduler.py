@@ -63,22 +63,6 @@ def install_schedule(db_path=None):
     # Create log directory
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Create the wrapper script that cd's to the right directory
-    script_path = Path(project_dir) / "asset_revesting" / "run_report.sh"
-    script_content = f"""#!/bin/bash
-# Asset Revesting Daily Report Runner
-# Auto-generated — do not edit manually
-
-cd "{project_dir}"
-"{python_path}" -m asset_revesting.run report >> "{LOG_DIR}/report.log" 2>&1
-
-# Keep only last 1000 lines of log
-tail -1000 "{LOG_DIR}/report.log" > "{LOG_DIR}/report.log.tmp" 2>/dev/null
-mv "{LOG_DIR}/report.log.tmp" "{LOG_DIR}/report.log" 2>/dev/null
-"""
-    script_path.write_text(script_content)
-    os.chmod(script_path, 0o755)
-
     # Build calendar intervals for each scheduled day
     # macOS LaunchAgent uses: Weekday (0=Sun, 1=Mon, ... 6=Sat)
     calendar_intervals = []
@@ -89,16 +73,19 @@ mv "{LOG_DIR}/report.log.tmp" "{LOG_DIR}/report.log" 2>/dev/null
             "Minute": sched["minute"],
         })
 
-    # Build the plist
+    # Build the plist — calls Python directly, no shell script needed
     plist = {
         "Label": PLIST_NAME,
-        "ProgramArguments": [str(script_path)],
+        "ProgramArguments": [
+            python_path, "-m", "asset_revesting.run", "report",
+        ],
         "StartCalendarInterval": calendar_intervals,
-        "StandardOutPath": str(LOG_DIR / "launchd_out.log"),
-        "StandardErrorPath": str(LOG_DIR / "launchd_err.log"),
+        "StandardOutPath": str(LOG_DIR / "report.log"),
+        "StandardErrorPath": str(LOG_DIR / "report_err.log"),
         "WorkingDirectory": project_dir,
         "EnvironmentVariables": {
             "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/miniconda3/bin",
+            "HOME": str(Path.home()),
         },
     }
 
@@ -159,7 +146,7 @@ def uninstall_schedule():
             pass
         PLIST_PATH.unlink(missing_ok=True)
 
-    # Also remove the wrapper script
+    # Clean up old shell script if it exists (from earlier versions)
     project_dir = _get_project_dir()
     script_path = Path(project_dir) / "asset_revesting" / "run_report.sh"
     script_path.unlink(missing_ok=True)
