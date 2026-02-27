@@ -52,7 +52,7 @@ function App(){
   const[data,setData]=useState(null);const[err,setErr]=useState(null);const[ld,setLd]=useState(true);
   const[toast,setToast]=useState(null);const[refreshing,setRefreshing]=useState(false);
   const[showEntry,setShowEntry]=useState(false);const[showExit,setShowExit]=useState(false);const[showCapital,setShowCapital]=useState(false);
-  const[showEmail,setShowEmail]=useState(false);
+  const[showEmail,setShowEmail]=useState(false);const[showUpdateStop,setShowUpdateStop]=useState(false);
 
   const load=useCallback(async()=>{try{const r=await fetch(`${API}/api/dashboard`);if(!r.ok)throw new Error(`HTTP ${r.status}`);setData(await r.json());setErr(null);}catch(e){setErr(e.message);}finally{setLd(false);};},[]);
   useEffect(()=>{load();const t=setInterval(load,60000);return()=>clearInterval(t);},[load]);
@@ -63,7 +63,9 @@ function App(){
 
   const doEnter=async(formData)=>{try{const r=await post('/api/position/enter',formData);showToast(`Entered ${formData.symbol} @ $${formData.entry_price}`);setShowEntry(false);load();}catch(e){showToast(e.message,false);}};
 
-  const doExit=async(formData)=>{try{const r=await post('/api/position/exit',formData);showToast(r.message);setShowExit(false);load();}catch(e){showToast(e.message,false);}};
+  const doExit=async(formData)=>{try{const r=await post('/api/position/exit',formData);showToast(r.message);setShowExit(false);load();}catch(e){showToast(e.message,false);};};
+
+  const doUpdateStop=async(newStop)=>{try{const r=await fetch(`${API}/api/position/update-stop?new_stop=${newStop}`,{method:'POST'});const j=await r.json();if(!r.ok)throw new Error(j.detail||'Request failed');showToast(`Stop updated to $${newStop.toFixed(2)} — now update your broker order`);setShowUpdateStop(false);load();}catch(e){showToast(e.message,false);}};
 
   const doCapital=async(cap)=>{try{await post('/api/capital',{capital:cap});showToast(`Capital set to $${cap.toLocaleString()}`);setShowCapital(false);load();}catch(e){showToast(e.message,false);}};
 
@@ -79,7 +81,7 @@ function App(){
     <ABanner s={data.signal} p={data.position} pf={data.portfolio} w={data.warnings}
       onEnter={()=>setShowEntry(true)} onExit={()=>setShowExit(true)}/>
 
-    {hasPos&&<PosCard p={data.position} onExit={()=>setShowExit(true)}/>}
+    {hasPos&&<PosCard p={data.position} onExit={()=>setShowExit(true)} onUpdateStop={()=>setShowUpdateStop(true)}/>}
 
     {!hasPos&&data.signal.direction!=='HOLD'&&data.signal.strength!=='NO_ENTRY'&&
       <ActionChecklist signal={data.signal}/>}
@@ -105,6 +107,7 @@ function App(){
     {showExit&&<ExitModal position={data.position} onSubmit={doExit} onClose={()=>setShowExit(false)}/>}
     {showCapital&&<CapitalModal current={data.portfolio.cash} onSubmit={doCapital} onClose={()=>setShowCapital(false)}/>}
     {showEmail&&<EmailModal onClose={()=>setShowEmail(false)} showToast={showToast}/>}
+  {showUpdateStop&&data.position&&<UpdateStopModal current={data.position.stop} recommended={data.position.atr_stop_recommended} onSubmit={doUpdateStop} onClose={()=>setShowUpdateStop(false)}/>}
   </div>);
 }
 
@@ -183,7 +186,7 @@ function ActionChecklist({signal}){
   );
 }
 
-function PosCard({p,onExit}){
+function PosCard({p,onExit,onUpdateStop}){
   const pnl=p.unrealized_pnl||0,pc=pnl>=0?'var(--grn)':'var(--red)';
   const stop=p.stop||0,tgt=p.target||0,cur=p.current_price||0,ent=p.entry_price||0;
   let bar=50;if(tgt>stop)bar=Math.max(0,Math.min(100,((cur-stop)/(tgt-stop))*100));
@@ -209,11 +212,14 @@ function PosCard({p,onExit}){
           ?`Move stop: $${stop.toFixed(2)} → $${atrStop.toFixed(2)} (+$${Math.abs(atrDiff).toFixed(2)} tighter)`
           :`ATR suggests: $${atrStop.toFixed(2)} vs current $${stop.toFixed(2)} ($${Math.abs(atrDiff).toFixed(2)} wider)`}
       </div>
-      <div style={{fontSize:12,color:'var(--txd)',lineHeight:1.5}}>
+      <div style={{fontSize:12,color:'var(--txd)',lineHeight:1.5,marginBottom:10}}>
         {atrTighter
-          ?`Your current stop ($${stop.toFixed(2)}) is looser than the ATR system would set. The volatility-based stop — 3× 14-day ATR with a 4% floor — is $${atrStop.toFixed(2)}. Log into your broker and update your stop-loss order to $${atrStop.toFixed(2)}.`
+          ?`Your current stop ($${stop.toFixed(2)}) is looser than the ATR system would set. The volatility-based stop — 3× 14-day ATR with a 4% floor — is $${atrStop.toFixed(2)}. Update your broker stop-loss order, then click below to record the change here.`
           :`Volatility has expanded since entry. The ATR-based stop is now $${atrStop.toFixed(2)}, which is below your current stop of $${stop.toFixed(2)}. Consider widening to avoid being shaken out on a normal pullback.`}
       </div>
+      <button className={`btn btn-sm ${atrTighter?'btn-g':'btn-b'}`} onClick={onUpdateStop}>
+        {atrTighter?`✓ I updated my broker stop — record $${atrStop.toFixed(2)} here`:`Update recorded stop to $${atrStop.toFixed(2)}`}
+      </button>
     </div>}
 
     <div className="pvs">
@@ -477,6 +483,28 @@ function IndCard({ind}){if(!ind)return null;return(<div className="cd">
     <div style={{color:(d.relative_strength||0)>0?'var(--grn)':'var(--red)'}}>{d.relative_strength!=null?`${d.relative_strength>0?'+':''}${d.relative_strength.toFixed(1)}%`:'—'}</div>
   </div>))}
 </div>);}
+
+function UpdateStopModal({current,recommended,onSubmit,onClose}){
+  const[val,setVal]=useState(recommended!=null?recommended.toFixed(2):current?(current).toFixed(2):'');
+  return(<div className="modal-bg" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}>
+    <div className="cl" style={{marginBottom:8}}>UPDATE STOP PRICE</div>
+    <p style={{fontSize:13,color:'var(--txd)',marginBottom:4,lineHeight:1.5}}>
+      <strong style={{color:'var(--txb)'}}>Step 1:</strong> Log into your broker and change your stop-loss order to the new price.<br/>
+      <strong style={{color:'var(--txb)'}}>Step 2:</strong> Enter that same price below so the dashboard reflects the change.
+    </p>
+    {recommended!=null&&<div style={{margin:'10px 0',padding:'8px 12px',borderRadius:4,background:'rgba(0,214,143,0.08)',border:'1px solid rgba(0,214,143,0.2)',fontFamily:'var(--mono)',fontSize:12,color:'var(--grn)'}}>
+      ATR recommendation: ${recommended.toFixed(2)}
+    </div>}
+    <div className="form-row" style={{marginTop:10}}><div className="form-grp">
+      <label className="form-lbl">New Stop Price ($)</label>
+      <input type="number" step="0.01" value={val} onChange={e=>setVal(e.target.value)} autoFocus/>
+    </div></div>
+    <div style={{display:'flex',gap:8,marginTop:14}}>
+      <button className="btn btn-g" disabled={!val||isNaN(parseFloat(val))} onClick={()=>onSubmit(parseFloat(val))}>Save New Stop</button>
+      <button className="btn" onClick={onClose}>Cancel</button>
+    </div>
+  </div></div>);
+}
 
 function EmailModal({onClose,showToast}){
   const[cfg,setCfg]=useState({recipient_email:'',smtp_server:'smtp.gmail.com',smtp_port:587,smtp_user:'',smtp_password:'',reply_to_email:'',report_hour:17,report_minute:0,report_days:'0,1,2,3,4,5',enabled:true});
