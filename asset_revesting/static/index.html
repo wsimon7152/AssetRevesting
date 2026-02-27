@@ -187,13 +187,37 @@ function PosCard({p,onExit}){
   const pnl=p.unrealized_pnl||0,pc=pnl>=0?'var(--grn)':'var(--red)';
   const stop=p.stop||0,tgt=p.target||0,cur=p.current_price||0,ent=p.entry_price||0;
   let bar=50;if(tgt>stop)bar=Math.max(0,Math.min(100,((cur-stop)/(tgt-stop))*100));
+
+  // ATR stop adjustment banner
+  const atrStop=p.atr_stop_recommended;
+  const atrDiff=p.atr_stop_diff;
+  const showAtr=atrStop!=null&&atrDiff!=null&&Math.abs(atrDiff)>=1.0;
+  const atrTighter=atrDiff>0; // atrStop is higher than current stop → tighter (better protection)
+
   return(
     <div className="cd sec"><div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
     <div><div className="cl">YOUR POSITION</div><div style={{fontFamily:'var(--mono)',fontSize:24,fontWeight:700,color:'var(--txb)'}}>{p.symbol} <span style={{fontSize:14,fontWeight:400,color:'var(--txd)'}}>{NM[p.symbol]||''} — {p.direction==='LONG'?'Long':'Inverse'}</span></div></div>
     <div style={{textAlign:'right'}}><div style={{fontFamily:'var(--mono)',fontSize:24,fontWeight:700,color:pc}}>{pnl>=0?'+':''}{pnl.toFixed(2)}%</div><div style={{fontFamily:'var(--mono)',fontSize:12,color:'var(--txd)'}}>since {p.entry_date}</div></div></div>
     <div className="pb"><div className="pbl" style={{color:'var(--red)'}}>Stop ${stop.toFixed(2)}</div><div className="pt"><div className="pf" style={{width:`${bar}%`,background:pc}}/></div><div className="pbl" style={{color:'var(--grn)'}}>Target ${tgt.toFixed(2)}</div></div>
+
+    {showAtr&&<div style={{background:atrTighter?'rgba(0,214,143,0.08)':'rgba(255,184,77,0.08)',border:`1px solid ${atrTighter?'rgba(0,214,143,0.3)':'rgba(255,184,77,0.3)'}`,borderRadius:6,padding:'12px 14px',marginBottom:12}}>
+      <div style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:600,color:atrTighter?'var(--grn)':'var(--amb)',marginBottom:4}}>
+        {atrTighter?'📐 UPDATE YOUR BROKER STOP':'📐 CONSIDER WIDENING STOP'}
+      </div>
+      <div style={{fontFamily:'var(--mono)',fontSize:15,fontWeight:700,color:'var(--txb)',marginBottom:6}}>
+        {atrTighter
+          ?`Move stop: $${stop.toFixed(2)} → $${atrStop.toFixed(2)} (+$${Math.abs(atrDiff).toFixed(2)} tighter)`
+          :`ATR suggests: $${atrStop.toFixed(2)} vs current $${stop.toFixed(2)} ($${Math.abs(atrDiff).toFixed(2)} wider)`}
+      </div>
+      <div style={{fontSize:12,color:'var(--txd)',lineHeight:1.5}}>
+        {atrTighter
+          ?`Your current stop ($${stop.toFixed(2)}) is looser than the ATR system would set. The volatility-based stop — 3× 14-day ATR with a 4% floor — is $${atrStop.toFixed(2)}. Log into your broker and update your stop-loss order to $${atrStop.toFixed(2)}.`
+          :`Volatility has expanded since entry. The ATR-based stop is now $${atrStop.toFixed(2)}, which is below your current stop of $${stop.toFixed(2)}. Consider widening to avoid being shaken out on a normal pullback.`}
+      </div>
+    </div>}
+
     <div className="pvs">
-      <div className="pv"><div className="pvl">⛔ Stop Loss Order</div><div className="pvv" style={{color:'var(--red)'}}>${stop.toFixed(2)}</div><div className="pve">{p.partial_exited?'At breakeven — risk eliminated':'Set this as a stop-loss order with your broker'}</div></div>
+      <div className="pv"><div className="pvl">⛔ Stop Loss Order</div><div className="pvv" style={{color:'var(--red)'}}>${stop.toFixed(2)}</div><div className="pve">{p.partial_exited?'At breakeven — risk eliminated':showAtr&&atrTighter?<span style={{color:'var(--amb)'}}>⚠ Update to ${atrStop.toFixed(2)}</span>:'Set this as a stop-loss order with your broker'}</div></div>
       <div className="pv"><div className="pvl">Entry Price</div><div className="pvv" style={{color:'var(--txb)'}}>${ent.toFixed(2)}</div><div className="pve">Your cost basis</div></div>
       <div className="pv"><div className="pvl">{p.partial_exited?'🔄 Trailing Stop':'🎯 Price Alert'}</div><div className="pvv" style={{color:'var(--grn)'}}>${tgt.toFixed(2)}</div><div className="pve">{p.partial_exited?'System manages — check daily':'Set alert: sell 25% here, move stop to breakeven'}</div></div>
     </div>

@@ -275,6 +275,41 @@ def get_dashboard_data(db_path=None):
 
     equity_curve = [{"date": r["date"], "equity": r["equity"]} for r in reversed(equity_rows)]
 
+    # Build position response dict (enriched with ATR stop recommendation if applicable)
+    position_response = None
+    if portfolio["position"]:
+        pos = portfolio["position"]
+        position_response = {
+            "symbol": pos["symbol"],
+            "direction": pos["direction"],
+            "entry_date": pos["entry_date"],
+            "entry_price": pos["entry_price"],
+            "current_price": current_price,
+            "unrealized_pnl": round(unrealized_pnl, 2) if unrealized_pnl is not None else None,
+            "stop": pos["stop"],
+            "target": pos["first_target"],
+            "partial_exited": pos["partial_exited"],
+        }
+        # ATR-based stop recommendation — compare stored stop to what ATR system would set
+        try:
+            from asset_revesting.config import (
+                USE_ATR_STOPS, ATR_MULTIPLIER, ATR_MIN_STOP_PCT, ATR_MAX_STOP_PCT
+            )
+            from asset_revesting.core.backtester import _get_atr
+            if USE_ATR_STOPS and pos["entry_price"] and pos["stop"]:
+                atr = _get_atr(pos["symbol"], pos["entry_date"], db_path)
+                if atr:
+                    raw_dist = ATR_MULTIPLIER * atr
+                    min_dist = pos["entry_price"] * ATR_MIN_STOP_PCT
+                    max_dist = pos["entry_price"] * ATR_MAX_STOP_PCT
+                    dist = max(min_dist, min(raw_dist, max_dist))
+                    atr_stop = round(pos["entry_price"] - dist, 2)
+                    atr_diff = round(atr_stop - pos["stop"], 2)
+                    position_response["atr_stop_recommended"] = atr_stop
+                    position_response["atr_stop_diff"] = atr_diff
+        except Exception:
+            pass  # ATR enrichment is best-effort; never break the dashboard
+
     return {
         "date": today,
         "data_date": data_date,
@@ -285,17 +320,7 @@ def get_dashboard_data(db_path=None):
             "total_equity": round(total_equity, 2),
             "vix_cooldown": portfolio["vix_cooldown"],
         },
-        "position": {
-            "symbol": portfolio["position"]["symbol"] if portfolio["position"] else None,
-            "direction": portfolio["position"]["direction"] if portfolio["position"] else None,
-            "entry_date": portfolio["position"]["entry_date"] if portfolio["position"] else None,
-            "entry_price": portfolio["position"]["entry_price"] if portfolio["position"] else None,
-            "current_price": current_price,
-            "unrealized_pnl": round(unrealized_pnl, 2) if unrealized_pnl is not None else None,
-            "stop": portfolio["position"]["stop"] if portfolio["position"] else None,
-            "target": portfolio["position"]["first_target"] if portfolio["position"] else None,
-            "partial_exited": portfolio["position"]["partial_exited"] if portfolio["position"] else False,
-        } if portfolio["position"] else None,
+        "position": position_response,
         "signal": {
             "asset": rotation["asset"],
             "direction": rotation["direction"],
