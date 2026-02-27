@@ -87,3 +87,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Claude AI workspace
+.claude/
