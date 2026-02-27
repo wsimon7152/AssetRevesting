@@ -76,6 +76,7 @@ def get_portfolio_state(db_path=None):
             "trailing_pct": state_row["trailing_pct"],
             "partial_exited": state_row["state"] == STATE_PARTIAL,
             "partial_exit_pct": state_row["partial_exit_pct"],
+            "stop_order_date": state_row["stop_order_date"],
         }
 
     return {
@@ -97,7 +98,7 @@ def save_portfolio_state(state_dict, db_path=None):
                 date=?, state=?, cash=?, symbol=?, direction=?, entry_date=?,
                 entry_price=?, shares=?, stop_price=?, target_price=?,
                 trailing_pct=?, partial_exit_pct=?, vix_cooldown=?,
-                last_updated=datetime('now')
+                stop_order_date=?, last_updated=datetime('now')
             WHERE id = 1
         """, (
             state_dict.get("date") or date.today().isoformat(),
@@ -113,6 +114,7 @@ def save_portfolio_state(state_dict, db_path=None):
             pos.get("trailing_pct") if pos else None,
             pos.get("partial_exit_pct") if pos else None,
             1 if state_dict.get("vix_cooldown") else 0,
+            pos.get("stop_order_date") if pos else None,
         ))
 
 
@@ -290,6 +292,25 @@ def get_dashboard_data(db_path=None):
             "target": pos["first_target"],
             "partial_exited": pos["partial_exited"],
         }
+        # Broker stop order expiry tracking
+        try:
+            from asset_revesting.config import BROKER_STOP_ORDER_DAYS, BROKER_STOP_WARN_DAYS
+            sod = pos.get("stop_order_date")
+            if sod:
+                from datetime import date as _date
+                placed = _date.fromisoformat(sod)
+                days_since = (date.today() - placed).days
+                days_left = BROKER_STOP_ORDER_DAYS - days_since
+                position_response["stop_order_date"] = sod
+                position_response["stop_order_days_left"] = days_left
+                position_response["stop_order_warning"] = days_left <= BROKER_STOP_WARN_DAYS
+            else:
+                position_response["stop_order_date"] = None
+                position_response["stop_order_days_left"] = None
+                position_response["stop_order_warning"] = False
+        except Exception:
+            pass
+
         # ATR-based stop recommendation — compare stored stop to what ATR system would set
         try:
             from asset_revesting.config import (

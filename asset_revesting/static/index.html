@@ -52,7 +52,7 @@ function App(){
   const[data,setData]=useState(null);const[err,setErr]=useState(null);const[ld,setLd]=useState(true);
   const[toast,setToast]=useState(null);const[refreshing,setRefreshing]=useState(false);
   const[showEntry,setShowEntry]=useState(false);const[showExit,setShowExit]=useState(false);const[showCapital,setShowCapital]=useState(false);
-  const[showEmail,setShowEmail]=useState(false);const[showUpdateStop,setShowUpdateStop]=useState(false);
+  const[showEmail,setShowEmail]=useState(false);const[showUpdateStop,setShowUpdateStop]=useState(false);const[showRenewStop,setShowRenewStop]=useState(false);
 
   const load=useCallback(async()=>{try{const r=await fetch(`${API}/api/dashboard`);if(!r.ok)throw new Error(`HTTP ${r.status}`);setData(await r.json());setErr(null);}catch(e){setErr(e.message);}finally{setLd(false);};},[]);
   useEffect(()=>{load();const t=setInterval(load,60000);return()=>clearInterval(t);},[load]);
@@ -65,7 +65,9 @@ function App(){
 
   const doExit=async(formData)=>{try{const r=await post('/api/position/exit',formData);showToast(r.message);setShowExit(false);load();}catch(e){showToast(e.message,false);};};
 
-  const doUpdateStop=async(newStop)=>{try{const r=await fetch(`${API}/api/position/update-stop?new_stop=${newStop}`,{method:'POST'});const j=await r.json();if(!r.ok)throw new Error(j.detail||'Request failed');showToast(`Stop updated to $${newStop.toFixed(2)} — now update your broker order`);setShowUpdateStop(false);load();}catch(e){showToast(e.message,false);}};
+  const doUpdateStop=async(newStop)=>{try{const r=await fetch(`${API}/api/position/update-stop?new_stop=${newStop}`,{method:'POST'});const j=await r.json();if(!r.ok)throw new Error(j.detail||'Request failed');showToast(`Stop updated to $${newStop.toFixed(2)} — 60-day clock reset`);setShowUpdateStop(false);load();}catch(e){showToast(e.message,false);};};
+
+  const doRenewStop=async()=>{try{const r=await fetch(`${API}/api/position/renew-stop`,{method:'POST'});const j=await r.json();if(!r.ok)throw new Error(j.detail||'Request failed');showToast('Stop order renewal recorded — 60-day clock reset');setShowRenewStop(false);load();}catch(e){showToast(e.message,false);}};
 
   const doCapital=async(cap)=>{try{await post('/api/capital',{capital:cap});showToast(`Capital set to $${cap.toLocaleString()}`);setShowCapital(false);load();}catch(e){showToast(e.message,false);}};
 
@@ -81,7 +83,7 @@ function App(){
     <ABanner s={data.signal} p={data.position} pf={data.portfolio} w={data.warnings}
       onEnter={()=>setShowEntry(true)} onExit={()=>setShowExit(true)}/>
 
-    {hasPos&&<PosCard p={data.position} onExit={()=>setShowExit(true)} onUpdateStop={()=>setShowUpdateStop(true)}/>}
+    {hasPos&&<PosCard p={data.position} onExit={()=>setShowExit(true)} onUpdateStop={()=>setShowUpdateStop(true)} onRenewStop={()=>setShowRenewStop(true)}/>}
 
     {!hasPos&&data.signal.direction!=='HOLD'&&data.signal.strength!=='NO_ENTRY'&&
       <ActionChecklist signal={data.signal}/>}
@@ -108,6 +110,7 @@ function App(){
     {showCapital&&<CapitalModal current={data.portfolio.cash} onSubmit={doCapital} onClose={()=>setShowCapital(false)}/>}
     {showEmail&&<EmailModal onClose={()=>setShowEmail(false)} showToast={showToast}/>}
   {showUpdateStop&&data.position&&<UpdateStopModal current={data.position.stop} recommended={data.position.atr_stop_recommended} onSubmit={doUpdateStop} onClose={()=>setShowUpdateStop(false)}/>}
+  {showRenewStop&&data.position&&<RenewStopModal stop={data.position.stop} daysLeft={data.position.stop_order_days_left} onSubmit={doRenewStop} onClose={()=>setShowRenewStop(false)}/>}
   </div>);
 }
 
@@ -186,10 +189,15 @@ function ActionChecklist({signal}){
   );
 }
 
-function PosCard({p,onExit,onUpdateStop}){
+function PosCard({p,onExit,onUpdateStop,onRenewStop}){
   const pnl=p.unrealized_pnl||0,pc=pnl>=0?'var(--grn)':'var(--red)';
   const stop=p.stop||0,tgt=p.target||0,cur=p.current_price||0,ent=p.entry_price||0;
   let bar=50;if(tgt>stop)bar=Math.max(0,Math.min(100,((cur-stop)/(tgt-stop))*100));
+
+  // Broker stop order expiry
+  const daysLeft=p.stop_order_days_left;
+  const stopExpired=daysLeft!=null&&daysLeft<=0;
+  const stopExpiring=daysLeft!=null&&daysLeft>0&&daysLeft<=7;
 
   // ATR stop adjustment banner
   const atrStop=p.atr_stop_recommended;
@@ -219,6 +227,21 @@ function PosCard({p,onExit,onUpdateStop}){
       </div>
       <button className={`btn btn-sm ${atrTighter?'btn-g':'btn-b'}`} onClick={onUpdateStop}>
         {atrTighter?`✓ I updated my broker stop — record $${atrStop.toFixed(2)} here`:`Update recorded stop to $${atrStop.toFixed(2)}`}
+      </button>
+    </div>}
+
+    {(stopExpired||stopExpiring)&&<div style={{background:stopExpired?'rgba(255,92,114,0.1)':'rgba(255,184,77,0.08)',border:`1px solid ${stopExpired?'rgba(255,92,114,0.3)':'rgba(255,184,77,0.3)'}`,borderRadius:6,padding:'12px 14px',marginBottom:12}}>
+      <div style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:600,color:stopExpired?'var(--red)':'var(--amb)',marginBottom:4}}>
+        {stopExpired?'🚨 STOP ORDER EXPIRED — YOU ARE UNPROTECTED':'⏰ STOP ORDER EXPIRING SOON'}
+      </div>
+      <div style={{fontFamily:'var(--mono)',fontSize:15,fontWeight:700,color:'var(--txb)',marginBottom:6}}>
+        {stopExpired?`Your GTC stop order at $${stop.toFixed(2)} has expired`:`Stop order expires in ${daysLeft} day${daysLeft!==1?'s':''} — renew now`}
+      </div>
+      <div style={{fontSize:12,color:'var(--txd)',lineHeight:1.5,marginBottom:10}}>
+        Vanguard cancels GTC stop-loss orders after 60 days. Log into Vanguard, cancel the current order, and place a new GTC stop-loss order at $${stop.toFixed(2)}. Then click below to reset the 60-day clock.
+      </div>
+      <button className="btn btn-sm" style={{background:stopExpired?'rgba(255,92,114,0.15)':undefined,borderColor:stopExpired?'rgba(255,92,114,0.4)':undefined,color:stopExpired?'var(--red)':undefined}} onClick={onRenewStop}>
+        ✓ I renewed my stop order with Vanguard
       </button>
     </div>}
 
@@ -501,6 +524,27 @@ function UpdateStopModal({current,recommended,onSubmit,onClose}){
     </div></div>
     <div style={{display:'flex',gap:8,marginTop:14}}>
       <button className="btn btn-g" disabled={!val||isNaN(parseFloat(val))} onClick={()=>onSubmit(parseFloat(val))}>Save New Stop</button>
+      <button className="btn" onClick={onClose}>Cancel</button>
+    </div>
+  </div></div>);
+}
+
+function RenewStopModal({stop,daysLeft,onSubmit,onClose}){
+  const expired=daysLeft!=null&&daysLeft<=0;
+  return(<div className="modal-bg" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}>
+    <div className="cl" style={{marginBottom:8}}>RENEW STOP ORDER</div>
+    <div style={{padding:'8px 12px',borderRadius:4,background:expired?'rgba(255,92,114,0.1)':'rgba(255,184,77,0.08)',border:`1px solid ${expired?'rgba(255,92,114,0.3)':'rgba(255,184,77,0.3)'}`,fontFamily:'var(--mono)',fontSize:12,color:expired?'var(--red)':'var(--amb)',marginBottom:12}}>
+      {expired?'⚠ Your stop order has EXPIRED — you have no protection right now':`⚠ Expires in ${daysLeft} day${daysLeft!==1?'s':''}`}
+    </div>
+    <p style={{fontSize:13,color:'var(--txd)',marginBottom:4,lineHeight:1.7}}>
+      Vanguard cancels GTC stop orders after 60 days. Renew yours:<br/>
+      <strong style={{color:'var(--txb)'}}>Step 1</strong> — Log into Vanguard. Cancel the existing stop order at ${stop.toFixed(2)}.<br/>
+      <strong style={{color:'var(--txb)'}}>Step 2</strong> — Place a new <em>GTC</em> stop-loss order at ${stop.toFixed(2)}.<br/>
+      <strong style={{color:'var(--txb)'}}>Step 3</strong> — Click confirm below to reset the 60-day clock here.
+    </p>
+    <p style={{fontSize:11,color:'var(--txd)',marginTop:8}}>If you also need to change the stop price, cancel this and use the "Update Stop" button instead — it handles both price and renewal at once.</p>
+    <div style={{display:'flex',gap:8,marginTop:14}}>
+      <button className="btn btn-g" onClick={onSubmit}>✓ Confirmed — stop renewed with Vanguard</button>
       <button className="btn" onClick={onClose}>Cancel</button>
     </div>
   </div></div>);

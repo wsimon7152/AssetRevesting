@@ -203,6 +203,16 @@ LEVERAGED_ETFS = {
 DEFENSIVE_ROTATION_THRESHOLD = 5.0
 
 # =============================================================================
+# BROKER ORDER MANAGEMENT
+# =============================================================================
+
+# Vanguard (and most brokers) cancel GTC stop-loss orders after 60 days.
+# The system tracks when the stop was last placed/renewed and warns you
+# before it expires so you can cancel and re-place it in time.
+BROKER_STOP_ORDER_DAYS = 60  # GTC order lifetime in days (Vanguard = 60)
+BROKER_STOP_WARN_DAYS  = 7   # Start warning this many days before expiry
+
+# =============================================================================
 # DATABASE
 # =============================================================================
 

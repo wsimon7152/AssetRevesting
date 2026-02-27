@@ -380,6 +380,28 @@ def _build_action_items(report):
                           + f"Stage 2 (advancing) confirmed. Everything is on track.",
             })
 
+        # Broker stop order expiry check (Vanguard GTC orders expire after 60 days)
+        days_left = position.get("stop_order_days_left")
+        if days_left is not None:
+            if days_left <= 0:
+                actions.append({
+                    "priority": "🚨 STOP ORDER EXPIRED",
+                    "action": f"Your {sym} stop-loss order has EXPIRED — you are unprotected",
+                    "detail": f"Vanguard GTC stop orders expire after 60 days. Your stop order at "
+                              f"${stop:.2f} has expired. Log into Vanguard immediately, cancel the old "
+                              f"order if it still shows, and place a new GTC stop-loss order at "
+                              f"${stop:.2f}. Until you do, you have NO downside protection.",
+                })
+            elif days_left <= 7:
+                actions.append({
+                    "priority": "⚠️ RENEW STOP ORDER",
+                    "action": f"Stop-loss order expires in {days_left} day{'s' if days_left != 1 else ''} — renew with Vanguard",
+                    "detail": f"Your GTC stop order at ${stop:.2f} expires in {days_left} day{'s' if days_left != 1 else ''}. "
+                              f"Log into Vanguard, cancel the current stop order, and place a new GTC "
+                              f"stop-loss order at ${stop:.2f}. Then click 'Renew Stop Order' on the dashboard "
+                              f"to reset the 60-day clock.",
+                })
+
         # ATR stop adjustment check
         atr_stop = position.get("atr_stop_recommended")
         atr_diff = position.get("atr_stop_diff")

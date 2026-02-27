@@ -144,6 +144,7 @@ def init_db(db_path=None):
                 trailing_pct    REAL,
                 partial_exit_pct REAL,
                 vix_cooldown    INTEGER NOT NULL DEFAULT 0,
+                stop_order_date TEXT,  -- date stop-loss order was last placed/renewed with broker
                 last_updated    TEXT
             );
 
@@ -169,6 +170,24 @@ def init_db(db_path=None):
         conn.execute("""
             INSERT OR IGNORE INTO portfolio_state (id, state, cash, vix_cooldown, last_updated)
             VALUES (1, 'CASH', 100000, 0, datetime('now'))
+        """)
+
+        # Migrate existing DBs: add stop_order_date column if missing
+        try:
+            conn.execute("SELECT stop_order_date FROM portfolio_state LIMIT 1")
+        except Exception:
+            conn.execute(
+                "ALTER TABLE portfolio_state ADD COLUMN stop_order_date TEXT"
+            )
+
+        # Backfill: for open positions with no stop_order_date, default to entry_date
+        # (reasonable assumption — stop was likely placed when the trade was entered)
+        conn.execute("""
+            UPDATE portfolio_state
+            SET stop_order_date = entry_date
+            WHERE stop_order_date IS NULL
+              AND entry_date IS NOT NULL
+              AND state IN ('POSITIONED', 'PARTIAL_EXIT')
         """)
 
 

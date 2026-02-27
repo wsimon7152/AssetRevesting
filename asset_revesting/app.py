@@ -135,6 +135,7 @@ def enter_position(req: EnterTradeRequest):
             "trailing_pct": params["trailing_pct"],
             "partial_exit_pct": params["partial_exit_pct"],
             "partial_exited": False,
+            "stop_order_date": entry_date,  # assume stop placed same day as entry
         },
         "vix_cooldown": state.get("vix_cooldown", False),
     }
@@ -244,14 +245,33 @@ def exit_position(req: ExitTradeRequest):
 
 @app.post("/api/position/update-stop")
 def update_stop(new_stop: float):
-    """Manually update the stop price."""
+    """Manually update the stop price. Also resets the 60-day broker order clock."""
     state = get_portfolio_state()
     if state["position"] is None:
         raise HTTPException(400, "No open position.")
 
+    today = datetime.now().strftime("%Y-%m-%d")
     state["position"]["stop"] = new_stop
+    state["position"]["stop_order_date"] = today  # placing a new stop resets the clock
     save_portfolio_state(state)
-    return {"status": "ok", "new_stop": new_stop}
+    return {"status": "ok", "new_stop": new_stop, "stop_order_date": today}
+
+
+@app.post("/api/position/renew-stop")
+def renew_stop_order():
+    """Record that the broker stop order was renewed (same price, new 60-day clock)."""
+    state = get_portfolio_state()
+    if state["position"] is None:
+        raise HTTPException(400, "No open position.")
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    state["position"]["stop_order_date"] = today
+    save_portfolio_state(state)
+    return {
+        "status": "ok",
+        "stop_order_date": today,
+        "message": f"Stop order renewal recorded. Next expiry in 60 days ({today}).",
+    }
 
 
 @app.post("/api/capital")
