@@ -121,6 +121,10 @@ def generate_report(db_path=None):
         "trades": get_trade_history(10, db_path),
     }
 
+    # Enrich position with ATR-based stop recommendation
+    if report["position"]:
+        report["position"] = _enrich_position_with_atr(report["position"], db_path)
+
     # Build action items
     report["actions"] = _build_action_items(report)
 
@@ -253,6 +257,46 @@ def _build_narrative(report):
     return parts
 
 
+def _enrich_position_with_atr(position, db_path=None):
+    """
+    Add ATR-based stop recommendation to the position dict.
+    Compares current stop_price to what the ATR stop would be,
+    flagging adjustments when they differ by more than $1.
+    """
+    from asset_revesting.config import (
+        USE_ATR_STOPS, ATR_MULTIPLIER, ATR_MIN_STOP_PCT, ATR_MAX_STOP_PCT
+    )
+    from asset_revesting.core.backtester import _get_atr
+
+    if not USE_ATR_STOPS:
+        return position
+
+    entry_price = position.get("entry_price")
+    entry_date  = position.get("entry_date")
+    current_stop = position.get("stop")
+    underlying = position.get("underlying") or position.get("symbol")
+
+    if not all([entry_price, entry_date, current_stop, underlying]):
+        return position
+
+    atr = _get_atr(underlying, entry_date, db_path)
+    if not atr:
+        return position
+
+    raw_dist = ATR_MULTIPLIER * atr
+    min_dist = entry_price * ATR_MIN_STOP_PCT
+    max_dist = entry_price * ATR_MAX_STOP_PCT
+    distance = max(min_dist, min(raw_dist, max_dist))
+    atr_stop = round(entry_price - distance, 2)
+
+    position = dict(position)  # don't mutate original
+    position["atr_stop_recommended"] = atr_stop
+    position["atr_val"] = round(atr, 4)
+    position["atr_stop_diff"] = round(atr_stop - current_stop, 2)
+
+    return position
+
+
 def _build_action_items(report):
     """
     Build clear, prioritized action items based on current state.
@@ -335,6 +379,28 @@ def _build_action_items(report):
                           + (f"First target: ${target:.2f}. " if target and not partial else "")
                           + f"Stage 2 (advancing) confirmed. Everything is on track.",
             })
+
+        # ATR stop adjustment check
+        atr_stop = position.get("atr_stop_recommended")
+        atr_diff = position.get("atr_stop_diff")
+        if atr_stop and atr_diff is not None and abs(atr_diff) >= 1.0:
+            if atr_diff > 0:
+                actions.append({
+                    "priority": "📐 ADJUST STOP",
+                    "action": f"Move your {sym} stop UP from ${stop:.2f} → ${atr_stop:.2f}",
+                    "detail": f"The ATR-based stop (3× 14-day volatility, floored at 4%) is ${atr_stop:.2f}, "
+                              f"which is ${atr_diff:.2f} tighter than your current stop of ${stop:.2f}. "
+                              f"Update your broker stop order to ${atr_stop:.2f} to lock in better protection.",
+                })
+            else:
+                actions.append({
+                    "priority": "📐 CONSIDER WIDENING STOP",
+                    "action": f"Volatility has risen — ATR stop suggests ${atr_stop:.2f} vs your ${stop:.2f}",
+                    "detail": f"Current 14-day ATR has expanded. The ATR-based stop (3× ATR, 4% floor) is now "
+                              f"${atr_stop:.2f}, ${abs(atr_diff):.2f} below your current stop of ${stop:.2f}. "
+                              f"If SPY is swinging normally, consider widening to ${atr_stop:.2f} to avoid "
+                              f"being stopped out on a routine pullback.",
+                })
 
         # Additional warnings for positioned state
         if vix.get("close") and vix["close"] >= 30:
