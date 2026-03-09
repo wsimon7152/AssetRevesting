@@ -307,7 +307,19 @@ function CapitalModal({current,onSubmit,onClose}){
 function StgCard({stages}){return(<div className="cd">
   <div style={{display:'flex',alignItems:'center',marginBottom:12}}><div className="cl" style={{marginBottom:0}}>STAGE ANALYSIS</div>
   <span className="hi">?<span className="ht">Assets cycle through 4 stages: <b>1) Accumulation</b> (base), <b>2) Advancing</b> (buy), <b>3) Distribution</b> (exit), <b>4) Declining</b> (inverse/cash). System buys Stage 2, goes inverse Stage 4.</span></span></div>
-  {Object.entries(stages).map(([sym,info])=>{const si=STG[info.stage]||STG.TRANSITIONAL;return(<div key={sym} className="sr"><div style={{display:'flex',alignItems:'center'}}><span className="ssm">{sym}</span><span className="snm">{NM[sym]||sym}</span></div><span className={`sb ${si.c}`}>{si.n} {si.l}</span></div>);})}
+  {Object.entries(stages).map(([sym,info])=>{
+    const si=STG[info.stage]||STG.TRANSITIONAL;
+    const transitioning=info.raw_stage&&info.raw_stage!==info.stage;
+    const ri=transitioning?(STG[info.raw_stage]||STG.TRANSITIONAL):null;
+    const consec=info.consecutive_days||0;
+    return(<div key={sym} className="sr">
+      <div style={{display:'flex',alignItems:'center'}}><span className="ssm">{sym}</span><span className="snm">{NM[sym]||sym}</span></div>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
+        <span className={`sb ${si.c}`}>{si.n} {si.l}</span>
+        {transitioning&&<span style={{fontSize:10,color:'var(--amb)',fontFamily:'var(--mono)'}}>→ {ri.n} {ri.l} ({consec}/3 days)</span>}
+      </div>
+    </div>);
+  })}
   <div style={{fontSize:11,color:'var(--txd)',marginTop:12,lineHeight:1.5,paddingTop:10,borderTop:'1px solid var(--bdr)'}}>Checks equities first → bonds → dollar → cash. Protects capital in downturns.</div>
 </div>);}
 

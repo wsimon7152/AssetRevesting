@@ -279,7 +279,9 @@ def _enrich_position_with_atr(position, db_path=None):
     if not all([entry_price, entry_date, current_stop, underlying]):
         return position
 
-    atr = _get_atr(underlying, entry_date, db_path)
+    from datetime import date as _today_date
+    today_str = _today_date.today().strftime("%Y-%m-%d")
+    atr = _get_atr(underlying, today_str, db_path)
     if not atr:
         return position
 

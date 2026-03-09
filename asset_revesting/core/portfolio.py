@@ -199,6 +199,7 @@ def get_dashboard_data(db_path=None):
             "stage": stage_info["stage"],
             "raw_stage": stage_info["raw_stage"],
             "confirmed": stage_info["confirmed"],
+            "consecutive_days": stage_info.get("consecutive_days", 0),
             "date": stage_info["date"],
         }
 
@@ -318,7 +319,7 @@ def get_dashboard_data(db_path=None):
             )
             from asset_revesting.core.backtester import _get_atr
             if USE_ATR_STOPS and pos["entry_price"] and pos["stop"]:
-                atr = _get_atr(pos["symbol"], pos["entry_date"], db_path)
+                atr = _get_atr(pos.get("underlying") or pos["symbol"], today, db_path)
                 if atr:
                     raw_dist = ATR_MULTIPLIER * atr
                     min_dist = pos["entry_price"] * ATR_MIN_STOP_PCT
