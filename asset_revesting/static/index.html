@@ -250,9 +250,10 @@ function PosCard({p,onExit,onUpdateStop,onRenewStop}){
       <div className="pv"><div className="pvl">Entry Price</div><div className="pvv" style={{color:'var(--txb)'}}>${ent.toFixed(2)}</div><div className="pve">Your cost basis</div></div>
       <div className="pv"><div className="pvl">{p.partial_exited?'🔄 Trailing Stop':'🎯 Price Alert'}</div><div className="pvv" style={{color:'var(--grn)'}}>${tgt.toFixed(2)}</div><div className="pve">{p.partial_exited?'System manages — check daily':'Set alert: sell 25% here, move stop to breakeven'}</div></div>
     </div>
-    <div style={{marginTop:12,display:'flex',gap:8}}>
+    <div style={{marginTop:12,display:'flex',gap:8,flexWrap:'wrap'}}>
       {!p.partial_exited&&<button className="btn btn-g btn-sm" onClick={onExit}>Log Partial Exit (hit target)</button>}
       <button className="btn btn-r btn-sm" onClick={onExit}>Log Full Exit</button>
+      <button className="btn btn-b btn-sm" onClick={onUpdateStop}>Update Stop</button>
     </div>
     </div>);
 }
